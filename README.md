@@ -1,5 +1,6 @@
-# my_slam_auto_driving
-认真学习激光slam的基础，先学习高翔老师的基础知识，再把优化库的一些知识放到这里面
+# slam_learn
+激光slam和视觉slam的学习都会放到这里来
+
 
 # 安装必要的库
 ···
