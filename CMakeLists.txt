@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(my_slam_auto_driving)
+project(slam_learn)
 # 发布版本
 set(CMAKE_BUILD_TYPE "Release")
 # c++版本
