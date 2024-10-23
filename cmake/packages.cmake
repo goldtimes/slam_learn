@@ -42,7 +42,7 @@ set(g2o_libs
     ${PROJECT_SOURCE_DIR}/thirdparty/g2o/lib/libg2o_core.so    
     ${PROJECT_SOURCE_DIR}/thirdparty/g2o/lib/libg2o_solver_dense.so    
     ${PROJECT_SOURCE_DIR}/thirdparty/g2o/lib/libg2o_solver_csparse.so    
-    ${PROJECT_SOURCE_DIR}/thirdparty/g2o/lib/libg2o_cspare_extension.so    
+    ${PROJECT_SOURCE_DIR}/thirdparty/g2o/lib/libg2o_csparse_extension.so    
     ${PROJECT_SOURCE_DIR}/thirdparty/g2o/lib/libg2o_types_sba.so 
     ${CSPARSE_LIBRARY}
     ${CHOLMOD_LIBRARY}   
@@ -55,6 +55,13 @@ find_package(Ceres REQUIRED)
 find_package(GTSAM REQUIRED QUIET)
 include_directories(${GTSAM_INCLUDE_DIR})
 
+#Pangolin
+find_package(Pangolin REQUIRED)
+include_directories(${Pangolin_INCLUDE_DIRS})
+
+#Boost
+find_package(Boost REQUIRED COMPONENTS system filesystem thread date_time timer serialization)
+include_directories(${BOOST_INCLUDE_DIRS})
 # ros
 set(ROS_PACKAGES
     roscpp 
@@ -78,6 +85,7 @@ set(third_party_libs
     ${g2o_libs}
     ${CERES_LIBRARIES}
     ${Pangolin_LIBRARIES}
+    ${Boost_LIBRARIES}
     ${yaml-cpp_LIBRARIES}
     gtsam
     glog
