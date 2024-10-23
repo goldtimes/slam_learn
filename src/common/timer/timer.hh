@@ -28,7 +28,7 @@ class Timer {
         // td::chrono::duration_cast<std::chrono::duration<double>>(end - start).count() get time used s
         auto time_used_ms = std::chrono::duration_cast<std::chrono::duration<double>>(end - start).count() * 1e3;
         if (records_.find(func_name) == records_.end()) {
-            records_.insert({func_name, time_used_ms});
+            records_.insert({func_name, {func_name, time_used_ms}});
         } else {
             records_[func_name].time_usage_in_ms_.emplace_back(time_used_ms);
         }
