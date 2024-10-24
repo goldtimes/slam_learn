@@ -59,4 +59,4 @@ using SE3f = Sophus::SE3f;
 using SO3 = Sophus::SO3d;
 
 using IdType = unsigned long;
-} // namespace slam_learn
+}  // namespace slam_learn
