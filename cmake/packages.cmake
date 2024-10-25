@@ -78,6 +78,9 @@ find_package(catkin QUIET COMPONENTS
     ${ROS_PACKAGES}
 ) 
 include_directories(${catkin_INCLUDE_DIRS})
+include_directories(${PROJECT_SOURCE_DIR}/thirdparty)
+
+
 
 set(third_party_libs
     ${catkin_LIBRARIES}
