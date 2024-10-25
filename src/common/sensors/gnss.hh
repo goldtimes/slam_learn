@@ -3,7 +3,7 @@
 #include <sensor_msgs/Imu.h>
 #include <sensor_msgs/NavSatFix.h>
 #include "common/eigen_types.hh"
-#include <memory
+#include <memory>
 namespace slam_learn {
 /// GNSS状态位信息
 /// 通常由GNSS厂商提供，这里使用千寻提供的状态位
