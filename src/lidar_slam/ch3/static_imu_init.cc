@@ -5,6 +5,7 @@ namespace slam_learn::imu_init {  /// 尝试对系统初始化
 
 /// 添加IMU数据
 bool StaticIMUInit::AddIMU(const IMU& imu) {
+    LOG(INFO) << "add imu";
     // 如果已经完成初始化
     if (init_success_) {
         return true;
