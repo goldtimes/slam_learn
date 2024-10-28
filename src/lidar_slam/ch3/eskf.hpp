@@ -1,12 +1,13 @@
 #pragma once
+#include <glog/logging.h>
 #include "common/eigen_types.hh"
+#include "common/math_utils.hh"
 #include "common/nav_state.hh"
 #include "common/sensors/gnss.hh"
 #include "common/sensors/imu.hh"
 #include "common/sensors/odom.hh"
-
 namespace slam_learn::eskf {
-template <typename T>
+template <typename S>
 class ESKF {
    public:
     /// 类型定义
@@ -103,7 +104,7 @@ class ESKF {
 
     /// 设置状态X
     void SetX(const NavStated& x, const Vec3d& grav) {
-        current_time_ = x.timestamp_;
+        current_time_ = x.timestamped_;
         R_ = x.R_;
         p_ = x.p_;
         v_ = x.v_;
