@@ -1,3 +1,4 @@
+#pragma once
 #include "common/eigen_types.hh"
 #include "common/nav_state.hh"
 #include "common/sensors/imu.hh"

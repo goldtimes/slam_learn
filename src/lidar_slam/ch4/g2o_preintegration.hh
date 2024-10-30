@@ -25,7 +25,7 @@ class EdgeInertial : public g2o::BaseMultiEdge<9, Vec9d> {
    public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     EdgeInertial() = default;
-    EdgeInertial(std::shared_ptr<IMUPreintegration> pre_inte, const Vec3d& gravity, double weight);
+    EdgeInertial(std::shared_ptr<IMUPreintegration> pre_inte, const Vec3d& gravity, double weight = 1.0);
 
     bool read(std::istream& is) override {
         return false;

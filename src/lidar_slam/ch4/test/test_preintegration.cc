@@ -2,10 +2,21 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
 
+#include "common/g2o_types.hh"
 #include "common/io_utils.hh"
 #include "common/math_utils.hh"
 #include "lidar_slam/ch3/eskf.hpp"
+#include "lidar_slam/ch3/static_imu_init.hh"
+#include "lidar_slam/ch3/utm_convert.hh"
 #include "lidar_slam/ch4/imu_preintegration.hh"
+
+// g2o的求解器
+#include <g2o/core/block_solver.h>
+#include <g2o/core/optimization_algorithm_gauss_newton.h>
+#include <g2o/core/optimization_algorithm_levenberg.h>
+#include <g2o/core/robust_kernel.h>
+#include <g2o/solvers/eigen/linear_solver_eigen.h>
+#include "lidar_slam/ch4/g2o_preintegration.hh"
 
 DEFINE_string(txt_path, "./data/ch3/10.txt", "数据文件路径");
 DEFINE_double(antenna_angle, 12.06, "RTK天线安装偏角(角度)");
@@ -114,14 +125,271 @@ TEST(PREINTEGRATION_TEST, ACCELERATION_TEST) {
     LOG(INFO) << "end rotation: \n" << end_status.R_.matrix();
     LOG(INFO) << "end trans: \n" << end_status.p_.transpose();
     LOG(INFO) << "end v: \n" << end_status.v_.transpose();
+    LOG(INFO) << "bg: \n" << end_status.bg_.transpose();
+    LOG(INFO) << "ba: \n" << end_status.ba_.transpose();
 
     LOG(INFO) << "direct integ result: ";
     LOG(INFO) << "end rotation: \n" << R.matrix();
     LOG(INFO) << "end trans: \n" << t.transpose();
     LOG(INFO) << "end v: \n" << v.transpose();
+    LOG(INFO) << "bg: \n" << end_status.bg_.transpose();
+    LOG(INFO) << "ba: \n" << end_status.ba_.transpose();
     SUCCEED();
 }
 
+void Optimize(NavStated& last_state, NavStated& this_state, GNSS& last_gnss, GNSS& this_gnss,
+              std::shared_ptr<IMUPreintegration>& preinteg, const Vec3d& grav);
+
+TEST(PREINTEGRATION_TEST, ESKF_TEST) {
+    using namespace slam_learn;
+    if (fLS::FLAGS_txt_path.empty()) {
+        FAIL();
+    }
+
+    // 初始化器
+    imu_init::StaticIMUInit imu_init;  // 使用默认配置
+    eskf::ESKFD eskf;
+
+    io_utils::TxtIO io(FLAGS_txt_path);
+    Vec2d antenna_pos(FLAGS_antenna_pox_x, FLAGS_antenna_pox_y);
+
+    std::ofstream fout("./data/ch3/gins.txt");
+    bool imu_inited = false, gnss_inited = false;
+
+    /// 设置各类回调函数
+    bool first_gnss_set = false;
+    Vec3d origin = Vec3d::Zero();
+
+    std::shared_ptr<IMUPreintegration> preinteg = nullptr;
+
+    NavStated last_state;
+    bool last_state_set = false;
+
+    GNSS last_gnss;
+    bool last_gnss_set = false;
+
+    io.SetIMUProcessFunc([&](const IMU& imu) {
+          /// IMU 处理函数
+          if (!imu_init.InitSuccess()) {
+              imu_init.AddIMU(imu);
+              return;
+          }
+
+          /// 需要IMU初始化
+          if (!imu_inited) {
+              // 读取初始零偏，设置ESKF
+              eskf::ESKFD::Options options;
+              // 噪声由初始化器估计
+              options.gyro_var_ = sqrt(imu_init.GetCovGyro()[0]);
+              options.acce_var_ = sqrt(imu_init.GetCovAcce()[0]);
+              eskf.SetInitialConditions(options, imu_init.GetInitBg(), imu_init.GetInitBa(), imu_init.GetGravity());
+
+              imu_inited = true;
+              return;
+          }
+
+          if (!gnss_inited) {
+              /// 等待有效的RTK数据
+              return;
+          }
+
+          /// GNSS 也接收到之后，再开始进行预测
+          double current_time = eskf.GetNominalState().timestamped_;
+          eskf.Predict(imu);
+
+          if (preinteg) {
+              preinteg->Integrate(imu, imu.timestamp_ - current_time);
+
+              if (last_state_set) {
+                  auto pred_of_preinteg = preinteg->Predict(last_state, eskf.GetGravity());
+                  auto pred_of_eskf = eskf.GetNominalState();
+
+                  /// 这两个预测值的误差应该非常接近
+                  EXPECT_NEAR((pred_of_preinteg.p_ - pred_of_eskf.p_).norm(), 0, 1e-2);
+                  EXPECT_NEAR((pred_of_preinteg.R_.inverse() * pred_of_eskf.R_).log().norm(), 0, 1e-2);
+                  EXPECT_NEAR((pred_of_preinteg.v_ - pred_of_eskf.v_).norm(), 0, 1e-2);
+              }
+          }
+      })
+        .SetGNSSProcessFunc([&](const GNSS& gnss) {
+            /// GNSS 处理函数
+            if (!imu_inited) {
+                return;
+            }
+
+            GNSS gnss_convert = gnss;
+            if (!ConvertGps2UTM(gnss_convert, antenna_pos, FLAGS_antenna_angle) || !gnss_convert.heading_valid_) {
+                return;
+            }
+
+            /// 去掉原点
+            if (!first_gnss_set) {
+                origin = gnss_convert.utm_pose_.translation();
+                first_gnss_set = true;
+            }
+            gnss_convert.utm_pose_.translation() -= origin;
+
+            // 要求RTK heading有效，才能合入EKF
+            auto state_bef_update = eskf.GetNominalState();
+
+            eskf.ObserveGps(gnss_convert);
+
+            // 验证优化过程是否正确
+            if (last_state_set && last_gnss_set) {
+                auto update_state = eskf.GetNominalState();
+
+                LOG(INFO) << "state before eskf update: " << state_bef_update;
+                LOG(INFO) << "state after  eskf update: " << update_state;
+
+                auto state_pred = preinteg->Predict(last_state, eskf.GetGravity());
+                LOG(INFO) << "state in pred: " << state_pred;
+
+                Optimize(last_state, update_state, last_gnss, gnss_convert, preinteg, eskf.GetGravity());
+            }
+
+            last_state = eskf.GetNominalState();
+            last_state_set = true;
+
+            // 重置预积分
+            IMUPreintegration::Options options;
+            options.init_bg_ = last_state.bg_;
+            options.init_ba_ = last_state.ba_;
+            preinteg = std::make_shared<IMUPreintegration>(options);
+
+            gnss_inited = true;
+            last_gnss = gnss_convert;
+            last_gnss_set = true;
+        })
+        .SetOdomProcessFunc([&](const Odom& odom) { imu_init.AddOdom(odom); })
+        .Go();
+
+    SUCCEED();
+}
+
+void Optimize(NavStated& last_state, NavStated& this_state, GNSS& last_gnss, GNSS& this_gnss,
+              std::shared_ptr<IMUPreintegration>& pre_integ, const Vec3d& grav) {
+    assert(pre_integ != nullptr);
+
+    if (pre_integ->dt_ < 1e-3) {
+        // 未得到积分
+        return;
+    }
+
+    using BlockSolverType = g2o::BlockSolverX;
+    using LinearSolverType = g2o::LinearSolverEigen<BlockSolverType::PoseMatrixType>;
+
+    auto* solver = new g2o::OptimizationAlgorithmGaussNewton(
+        g2o::make_unique<BlockSolverType>(g2o::make_unique<LinearSolverType>()));
+    g2o::SparseOptimizer optimizer;
+    optimizer.setAlgorithm(solver);
+
+    // 上时刻顶点， pose, v, bg, ba
+    auto v0_pose = new VertexPose();
+    v0_pose->setId(0);
+    v0_pose->setEstimate(last_state.GetSE3());
+    optimizer.addVertex(v0_pose);
+
+    auto v0_vel = new VertexVelocity();
+    v0_vel->setId(1);
+    v0_vel->setEstimate(last_state.v_);
+    optimizer.addVertex(v0_vel);
+
+    auto v0_bg = new VertexGyroBias();
+    v0_bg->setId(2);
+    v0_bg->setEstimate(last_state.bg_);
+    optimizer.addVertex(v0_bg);
+
+    auto v0_ba = new VertexAcceBias();
+    v0_ba->setId(3);
+    v0_ba->setEstimate(last_state.ba_);
+    optimizer.addVertex(v0_ba);
+
+    // 本时刻顶点，pose, v, bg, ba
+    auto v1_pose = new VertexPose();
+    v1_pose->setId(4);
+    v1_pose->setEstimate(this_state.GetSE3());
+    optimizer.addVertex(v1_pose);
+
+    auto v1_vel = new VertexVelocity();
+    v1_vel->setId(5);
+    v1_vel->setEstimate(this_state.v_);
+    optimizer.addVertex(v1_vel);
+
+    auto v1_bg = new VertexGyroBias();
+    v1_bg->setId(6);
+    v1_bg->setEstimate(this_state.bg_);
+    optimizer.addVertex(v1_bg);
+
+    auto v1_ba = new VertexAcceBias();
+    v1_ba->setId(7);
+    v1_ba->setEstimate(this_state.ba_);
+    optimizer.addVertex(v1_ba);
+
+    // 预积分边
+    auto edge_inertial = new EdgeInertial(pre_integ, grav);
+    edge_inertial->setVertex(0, v0_pose);
+    edge_inertial->setVertex(1, v0_vel);
+    edge_inertial->setVertex(2, v0_bg);
+    edge_inertial->setVertex(3, v0_ba);
+    edge_inertial->setVertex(4, v1_pose);
+    edge_inertial->setVertex(5, v1_vel);
+
+    auto* rk = new g2o::RobustKernelHuber();
+    rk->setDelta(200.0);
+    edge_inertial->setRobustKernel(rk);
+
+    optimizer.addEdge(edge_inertial);
+    edge_inertial->computeError();
+    LOG(INFO) << "inertial init err: " << edge_inertial->chi2();
+
+    auto* edge_gyro_rw = new EdgeGyroRW();
+    edge_gyro_rw->setVertex(0, v0_bg);
+    edge_gyro_rw->setVertex(1, v1_bg);
+    edge_gyro_rw->setInformation(Mat3d::Identity() * 1e6);
+    optimizer.addEdge(edge_gyro_rw);
+
+    edge_gyro_rw->computeError();
+    LOG(INFO) << "inertial bg rw: " << edge_gyro_rw->chi2();
+
+    auto* edge_acc_rw = new EdgeAcceRW();
+    edge_acc_rw->setVertex(0, v0_ba);
+    edge_acc_rw->setVertex(1, v1_ba);
+    edge_acc_rw->setInformation(Mat3d::Identity() * 1e6);
+    optimizer.addEdge(edge_acc_rw);
+
+    edge_acc_rw->computeError();
+    LOG(INFO) << "inertial ba rw: " << edge_acc_rw->chi2();
+
+    // GNSS边
+    auto edge_gnss0 = new EdgeGNSS(v0_pose, last_gnss.utm_pose_);
+    edge_gnss0->setInformation(Mat6d::Identity() * 1e2);
+    optimizer.addEdge(edge_gnss0);
+
+    edge_gnss0->computeError();
+    LOG(INFO) << "gnss0 init err: " << edge_gnss0->chi2();
+
+    auto edge_gnss1 = new EdgeGNSS(v1_pose, this_gnss.utm_pose_);
+    edge_gnss1->setInformation(Mat6d::Identity() * 1e2);
+    optimizer.addEdge(edge_gnss1);
+
+    edge_gnss1->computeError();
+    LOG(INFO) << "gnss1 init err: " << edge_gnss1->chi2();
+
+    optimizer.setVerbose(true);
+    optimizer.initializeOptimization();
+    optimizer.optimize(10);
+
+    NavStated corr_state(this_state.timestamped_, v1_pose->estimate().so3(), v1_pose->estimate().translation(),
+                         v1_vel->estimate(), v1_bg->estimate(), v1_ba->estimate());
+    LOG(INFO) << "corr state in opt: " << corr_state;
+
+    // 获取结果，统计各类误差
+    LOG(INFO) << "chi2/error: ";
+    LOG(INFO) << "preintegration: " << edge_inertial->chi2() << "/" << edge_inertial->error().transpose();
+    LOG(INFO) << "gnss0: " << edge_gnss0->chi2() << ", " << edge_gnss0->error().transpose();
+    LOG(INFO) << "gnss1: " << edge_gnss1->chi2() << ", " << edge_gnss1->error().transpose();
+    LOG(INFO) << "bias: " << edge_gyro_rw->chi2() << "/" << edge_acc_rw->error().transpose();
+}
 int main(int argc, char** argv) {
     google::InitGoogleLogging(argv[0]);
     FLAGS_stderrthreshold = google::INFO;

@@ -1,6 +1,7 @@
 add_library(${PROJECT_NAME}.ch4
         imu_preintegration.cc
         g2o_preintegration.cc
+        gins_pre_integ.cc
         )
 # test
 ADD_EXECUTABLE(test_preintegration test/test_preintegration.cc)
