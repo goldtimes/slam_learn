@@ -37,7 +37,7 @@ class IMUPreintegration {
     Vec3d GetDeltaVelocity(const Vec3d &bg, const Vec3d &ba);
     Vec3d GetDeltaPosition(const Vec3d &bg, const Vec3d &ba);
 
-   private:
+   public:
     // 预积分的间隔时间
     double dt_;
 
