@@ -17,7 +17,7 @@ target_link_libraries(scan_to_range_image
 
 add_library(${PROJECT_NAME}.ch5
         bfnn.cc
-        # kdtree.cc
+        kdtree.cc
         # octo_tree.cc
         )
 target_link_libraries(${PROJECT_NAME}.ch5

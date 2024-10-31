@@ -7,6 +7,7 @@
 
 #include "lidar_slam/ch5/bfnn.hh"
 #include "lidar_slam/ch5/gridnn.hpp"
+#include "lidar_slam/ch5/kdtree.hh"
 // #include "ch5/kdtree.h"
 // #include "ch5/octo_tree.h"
 // #include "common/point_cloud_utils.h"
@@ -185,6 +186,38 @@ TEST(CH5_TEST, GRID_NN) {
         [&first, &second, &grid3, &matches]() { grid3.GetClosestPointForCloudMT(first, second, matches); },
         "Grid 3D 多线程", 10);
     EvaluateMatches(truth_matches, matches);
+
+    SUCCEED();
+}
+
+TEST(CH5_TEST, KDTREE_BASICS) {
+    using namespace slam_learn;
+    CloudPtr cloud(new PointCloudXYZI);
+    PointXYZI p1, p2, p3, p4;
+    p1.x = 0;
+    p1.y = 0;
+    p1.z = 0;
+
+    p2.x = 1;
+    p2.y = 0;
+    p2.z = 0;
+
+    p3.x = 0;
+    p3.y = 1;
+    p3.z = 0;
+
+    p4.x = 1;
+    p4.y = 1;
+    p4.z = 0;
+
+    cloud->points.push_back(p1);
+    cloud->points.push_back(p2);
+    cloud->points.push_back(p3);
+    cloud->points.push_back(p4);
+
+    kdtree::KdTree kdtree;
+    kdtree.BuildTree(cloud);
+    kdtree.PrintAll();
 
     SUCCEED();
 }
