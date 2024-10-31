@@ -4,6 +4,8 @@
 namespace slam_learn::math {
 constexpr double kDEG2RAD = M_PI / 180.0;  // deg->rad
 constexpr double kRAD2DEG = 180.0 / M_PI;  // rad -> deg
+// 非法定义
+constexpr size_t kINVALID_ID = std::numeric_limits<size_t>::max();
 
 /**
  * 计算一个容器内数据的均值与对角形式协方差
