@@ -5,14 +5,12 @@
 #include <pcl/io/pcd_io.h>
 #include <pcl/search/kdtree.h>
 
+#include "common/lidar_utils.hh"
+#include "common/sensors/point_type.hh"
 #include "lidar_slam/ch5/bfnn.hh"
 #include "lidar_slam/ch5/gridnn.hpp"
 #include "lidar_slam/ch5/kdtree.hh"
-// #include "ch5/kdtree.h"
-// #include "ch5/octo_tree.h"
-// #include "common/point_cloud_utils.h"
-#include "common/lidar_utils.hh"
-#include "common/sensors/point_type.hh"
+#include "lidar_slam/ch5/octo_tree.hh"
 // #include "common/sys_utils.h"
 #include <chrono>
 #include "common/math_utils.hh"
@@ -277,6 +275,78 @@ TEST(CH5_TEST, KDTREE_KNN) {
             matches.push_back({m, i});
         }
     }
+    EvaluateMatches(true_matches, matches);
+
+    LOG(INFO) << "done.";
+
+    SUCCEED();
+}
+
+TEST(CH5_TEST, OCTREE_BASICS) {
+    using namespace slam_learn;
+    CloudPtr cloud(new PointCloudXYZI);
+    PointXYZI p1, p2, p3, p4;
+    p1.x = 0;
+    p1.y = 0;
+    p1.z = 0;
+
+    p2.x = 1;
+    p2.y = 0;
+    p2.z = 0;
+
+    p3.x = 0;
+    p3.y = 1;
+    p3.z = 0;
+
+    p4.x = 1;
+    p4.y = 1;
+    p4.z = 0;
+
+    cloud->points.push_back(p1);
+    cloud->points.push_back(p2);
+    cloud->points.push_back(p3);
+    cloud->points.push_back(p4);
+
+    octo_tree::OctoTree octree;
+    octree.BuildTree(cloud);
+    octree.SetApproximate(false);
+    LOG(INFO) << "Octo tree leaves: " << octree.size() << ", points: " << cloud->size();
+
+    SUCCEED();
+}
+
+TEST(CH5_TEST, OCTREE_KNN) {
+    using namespace slam_learn;
+
+    CloudPtr first(new PointCloudXYZI), second(new PointCloudXYZI);
+    pcl::io::loadPCDFile(FLAGS_first_scan_path, *first);
+    pcl::io::loadPCDFile(FLAGS_second_scan_path, *second);
+
+    if (first->empty() || second->empty()) {
+        LOG(ERROR) << "cannot load cloud";
+        FAIL();
+    }
+
+    // voxel grid 至 0.05
+    lidar_utils::VoxelGrid(first);
+    lidar_utils::VoxelGrid(second);
+
+    octo_tree::OctoTree octree;
+    evaluate_and_call([&first, &octree]() { octree.BuildTree(first); }, "Octo Tree build", 1);
+
+    octree.SetApproximate(true, FLAGS_ANN_alpha);
+    LOG(INFO) << "Octo tree leaves: " << octree.size() << ", points: " << first->size();
+
+    /// 测试KNN
+    LOG(INFO) << "testing knn";
+    std::vector<std::pair<size_t, size_t>> matches;
+    evaluate_and_call([&first, &second, &octree, &matches]() { octree.GetClosestPointMT(second, matches, 5); },
+                      "Octo Tree 5NN 多线程", 1);
+
+    LOG(INFO) << "comparing with bfnn";
+    /// 比较真值
+    std::vector<std::pair<size_t, size_t>> true_matches;
+    bfnn::bfnn_cloud_mt_k(first, second, true_matches);
     EvaluateMatches(true_matches, matches);
 
     LOG(INFO) << "done.";
