@@ -222,6 +222,68 @@ TEST(CH5_TEST, KDTREE_BASICS) {
     SUCCEED();
 }
 
+TEST(CH5_TEST, KDTREE_KNN) {
+    using namespace slam_learn;
+    CloudPtr first(new PointCloudXYZI), second(new PointCloudXYZI);
+    pcl::io::loadPCDFile(FLAGS_first_scan_path, *first);
+    pcl::io::loadPCDFile(FLAGS_second_scan_path, *second);
+
+    if (first->empty() || second->empty()) {
+        LOG(ERROR) << "cannot load cloud";
+        FAIL();
+    }
+
+    // voxel grid 至 0.05
+    lidar_utils::VoxelGrid(first);
+    lidar_utils::VoxelGrid(second);
+
+    kdtree::KdTree kdtree;
+    evaluate_and_call([&first, &kdtree]() { kdtree.BuildTree(first); }, "Kd Tree build", 1);
+
+    kdtree.SetEnableANN(true, FLAGS_ANN_alpha);
+
+    LOG(INFO) << "Kd tree leaves: " << kdtree.size() << ", points: " << first->size();
+
+    // 比较 bfnn
+    std::vector<std::pair<size_t, size_t>> true_matches;
+    bfnn::bfnn_cloud_mt_k(first, second, true_matches);
+
+    // 对第2个点云执行knn
+    std::vector<std::pair<size_t, size_t>> matches;
+    evaluate_and_call([&first, &second, &kdtree, &matches]() { kdtree.GetClosestPointMT(second, matches, 5); },
+                      "Kd Tree 5NN 多线程", 1);
+    EvaluateMatches(true_matches, matches);
+
+    LOG(INFO) << "building kdtree pcl";
+    // 对比PCL
+    pcl::search::KdTree<PointXYZI> kdtree_pcl;
+    evaluate_and_call([&first, &kdtree_pcl]() { kdtree_pcl.setInputCloud(first); }, "Kd Tree build", 1);
+
+    LOG(INFO) << "searching pcl";
+    matches.clear();
+    std::vector<int> search_indices(second->size());
+    for (int i = 0; i < second->points.size(); i++) {
+        search_indices[i] = i;
+    }
+
+    std::vector<std::vector<int>> result_index;
+    std::vector<std::vector<float>> result_distance;
+    evaluate_and_call([&]() { kdtree_pcl.nearestKSearch(*second, search_indices, 5, result_index, result_distance); },
+                      "Kd Tree 5NN in PCL", 1);
+    for (int i = 0; i < second->points.size(); i++) {
+        for (int j = 0; j < result_index[i].size(); ++j) {
+            int m = result_index[i][j];
+            double d = result_distance[i][j];
+            matches.push_back({m, i});
+        }
+    }
+    EvaluateMatches(true_matches, matches);
+
+    LOG(INFO) << "done.";
+
+    SUCCEED();
+}
+
 int main(int argc, char** argv) {
     google::InitGoogleLogging(argv[0]);
     FLAGS_stderrthreshold = google::INFO;
