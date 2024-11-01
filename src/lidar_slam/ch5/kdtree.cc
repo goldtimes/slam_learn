@@ -15,7 +15,10 @@ bool KdTree::BuildTree(CloudPtr cloud) {
     Reset();
 
     std::vector<int> idx(cloud->size());
-    std::for_each(idx.begin(), idx.end(), [id = 0](int& i) mutable { i = id++; });
+    std::for_each(idx.begin(), idx.end(), [id = 0](int& i) mutable {
+        i = id++;
+        LOG(INFO) << "id:" << id;
+    });
     // 传入所有点云的下标，传入根节点
     Insert(idx, root_.get());
     return true;
@@ -60,7 +63,7 @@ bool KdTree::FindSplitAxisAndThresh(const std::vector<int>& point_idx, int& axis
     // 计算三个轴上的分布情况
     Vec3f var;
     Vec3f mean;
-    math::ComputeMeanAndCovDiag(point_idx, var, mean, [this](int idx) { return cloud_[idx]; });
+    math::ComputeMeanAndCovDiag(point_idx, mean, var, [this](int idx) { return cloud_[idx]; });
     int max_i, max_j;
     // 返回最大的行，最大的列
     var.maxCoeff(&max_i, &max_j);
