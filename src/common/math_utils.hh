@@ -36,6 +36,33 @@ void ComputeMeanAndCovDiag(const C& datas, D& mean, D& cov_diag, Getter&& getter
                (len - 1);
 }
 
+/**
+ * 计算一个容器内数据的均值与矩阵形式协方差
+ * @tparam C    容器类型
+ * @tparam int 　数据维度
+ * @tparam Getter   获取数据函数, 接收一个容器内数据类型，返回一个Eigen::Matrix<double, dim,1> 矢量类型
+ */
+template <typename C, int dim, typename Getter>
+void ComputeMeanAndCov(const C& datas, Eigen::Matrix<double, dim, 1>& mean, Eigen::Matrix<double, dim, dim>& cov,
+                       Getter&& getter) {
+    size_t len = datas.size();
+    using D = Eigen::Matrix<double, dim, 1>;
+    using E = Eigen::Matrix<double, dim, dim>;
+    assert(len > 1);
+    // eval()立即被求值
+    // accumulate的自定义求值方式
+    auto sum = std::accumulate(datas.begin(), datas.end(), Eigen::Matrix<double, dim, 1>::Zero().eval(),
+                               [&getter](const D& sum, const auto& data) -> D { return sum + getter(data); });
+    mean = sum / len;
+    // 协方差的计算
+    cov = std::accumulate(datas.begin(), datas.end(), E::Zero().eval(),
+                          [&getter, &mean](const E& sum, const auto& data) -> E {
+                              D v = getter(data) - mean;
+                              return sum + v * v.template transpose();
+                          }) /
+          (len - 1);
+}
+
 template <typename S>
 bool FitLine2D(const std::vector<Eigen::Matrix<S, 2, 1>>& datas, Eigen::Matrix<S, 3, 1>& coeffs) {
     if (datas.size() < 3) {

@@ -61,4 +61,9 @@ void SaveCloudToFile(const std::string& filePath, CloudType& cloud) {
     cloud.width = cloud.size();
     pcl::io::savePCDFileASCII(filePath, cloud);
 }
+
+template <typename S, int n>
+inline Eigen::Matrix<int, n, 1> CastToInt(const Eigen::Matrix<S, n, 1>& value) {
+    return value.array().template round().template cast<int>();
+}
 }  // namespace slam_learn::lidar_utils

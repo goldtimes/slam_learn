@@ -1,5 +1,6 @@
 add_library(${PROJECT_NAME}.ch7
     icp_3d.cc
+    ndt_3d.cc
 )
 
 target_link_libraries(${PROJECT_NAME}.ch7
