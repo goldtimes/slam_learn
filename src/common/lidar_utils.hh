@@ -37,6 +37,15 @@ inline Eigen::Matrix<float, 3, 1> ToEigen(const PointXYZI& pt) {
     return Vec3f(pt.x, pt.y, pt.z);
 }
 
+template <typename S>
+inline PointXYZI ToPointType(const Eigen::Matrix<S, 3, 1>& pt) {
+    PointXYZI point;
+    point.x = pt[0];
+    point.y = pt[1];
+    point.z = pt[2];
+    return point;
+}
+
 inline void VoxelGrid(CloudPtr cloud, float voxel_size = 0.05) {
     pcl::VoxelGrid<PointXYZI> voxel;
     voxel.setLeafSize(voxel_size, voxel_size, voxel_size);
@@ -44,5 +53,12 @@ inline void VoxelGrid(CloudPtr cloud, float voxel_size = 0.05) {
     CloudPtr output(new PointCloudXYZI);
     voxel.filter(*output);
     cloud->swap(*output);
+}
+
+template <typename CloudType>
+void SaveCloudToFile(const std::string& filePath, CloudType& cloud) {
+    cloud.height = 1;
+    cloud.width = cloud.size();
+    pcl::io::savePCDFileASCII(filePath, cloud);
 }
 }  // namespace slam_learn::lidar_utils

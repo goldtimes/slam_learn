@@ -3,8 +3,8 @@
 #include <Eigen/src/Core/util/Constants.h>
 #include <Eigen/src/SVD/JacobiSVD.h>
 #include <Eigen/Core>
-#include <algorithm>
 #include <cmath>
+#include <numeric>
 #include <vector>
 namespace slam_learn::math {
 constexpr double kDEG2RAD = M_PI / 180.0;  // deg->rad
@@ -48,6 +48,54 @@ bool FitLine2D(const std::vector<Eigen::Matrix<S, 2, 1>>& datas, Eigen::Matrix<S
     }
     Eigen::JacobiSVD svd(A, Eigen::ComputeThinV);
     coeffs = svd.matrixV().col(2);
+    return true;
+}
+
+template <typename S>
+bool FitLine(const std::vector<Eigen::Matrix<S, 3, 1>>& datas, Eigen::Matrix<S, 3, 1>& line_start,
+             Eigen::Matrix<S, 3, 1>& direction, double line_thresh = 0.2) {
+    if (datas.size() < 2) {
+        return false;
+    }
+    line_start = std::accumulate(datas.begin(), datas.end(), Eigen::Matrix<S, 3, 1>::Zero().eval()) / datas.size();
+    Eigen::MatrixXd A(datas.size(), 3);
+    for (int i = 0; i < datas.size(); ++i) {
+        A.row(i) = (datas[i] - line_start).transpose();
+    }
+
+    Eigen::JacobiSVD svd(A, Eigen::ComputeFullV);
+    direction = svd.matrixV().col(0);
+    // 计算点到直线的距离
+    for (const auto& pt : datas) {
+        if (direction.template cross(pt - line_start).template squaredNorm() > line_thresh) {
+            return false;
+        }
+    }
+    return true;
+}
+
+template <typename S>
+bool FitPlane(const std::vector<Eigen::Matrix<S, 3, 1>>& datas, Eigen::Matrix<S, 4, 1>& plane_coeffs,
+              double plane_thresh = 1e-2) {
+    if (datas.size() < 3) {
+        return false;
+    }
+    // 方程
+    Eigen::MatrixXd A(datas.size(), 4);
+    for (int i = 0; i < datas.size(); ++i) {
+        A.row(i).head<3>() = datas[i].transpose();
+        A.row(i)[3] = 1.0;
+    }
+
+    Eigen::JacobiSVD svd(A, Eigen::ComputeThinV);
+    plane_coeffs = svd.matrixV().col(3);
+
+    for (int i = 0; i < datas.size(); ++i) {
+        double err = plane_coeffs.template head<3>().dot(datas[i]) + plane_coeffs[3];
+        if (err * err > plane_thresh) {
+            return false;
+        }
+    }
     return true;
 }
 
