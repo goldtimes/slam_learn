@@ -1,6 +1,11 @@
 #pragma once
+#include <Eigen/src/Core/Matrix.h>
+#include <Eigen/src/Core/util/Constants.h>
+#include <Eigen/src/SVD/JacobiSVD.h>
+#include <Eigen/Core>
 #include <algorithm>
 #include <cmath>
+#include <vector>
 namespace slam_learn::math {
 constexpr double kDEG2RAD = M_PI / 180.0;  // deg->rad
 constexpr double kRAD2DEG = 180.0 / M_PI;  // rad -> deg
@@ -29,6 +34,21 @@ void ComputeMeanAndCovDiag(const C& datas, D& mean, D& cov_diag, Getter&& getter
                                    return sum + (getter(data) - mean).cwiseAbs2().eval();
                                }) /
                (len - 1);
+}
+
+template <typename S>
+bool FitLine2D(const std::vector<Eigen::Matrix<S, 2, 1>>& datas, Eigen::Matrix<S, 3, 1>& coeffs) {
+    if (datas.size() < 3) {
+        return false;
+    }
+    Eigen::MatrixXd A(datas.size(), 3);
+    for (int i = 0; i < datas.size(); ++i) {
+        A.row(i).head<2>() = datas[i].transpose();
+        A.row(i)[2] = 1;
+    }
+    Eigen::JacobiSVD svd(A, Eigen::ComputeThinV);
+    coeffs = svd.matrixV().col(2);
+    return true;
 }
 
 }  // namespace slam_learn::math
