@@ -1,6 +1,12 @@
 # 包含cmake文件
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
+
+# livox ros driver
+add_subdirectory(thirdparty/livox_ros_driver)
+include_directories(${CMAKE_BINARY_DIR}/devel/include) # 引用ros生成的msg header
+
+
 #eigen 
 find_package(Eigen3 REQUIRED)
 include_directories(${EIGEN3_INCLUDE_DIRS})
@@ -79,6 +85,7 @@ find_package(catkin QUIET COMPONENTS
 ) 
 include_directories(${catkin_INCLUDE_DIRS})
 include_directories(${PROJECT_SOURCE_DIR}/thirdparty)
+include_directories(${PROJECT_SOURCE_DIR}/thirdparty/velodyne/include)
 
 
 

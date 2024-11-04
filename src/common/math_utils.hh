@@ -126,4 +126,11 @@ bool FitPlane(const std::vector<Eigen::Matrix<S, 3, 1>>& datas, Eigen::Matrix<S,
     return true;
 }
 
+template <typename S>
+inline SE3 Mat4ToSE3(const Eigen::Matrix<S, 4, 4>& m) {
+    /// 对R做归一化，防止sophus里的检查不过
+    Quatd q(m.template block<3, 3>(0, 0).template cast<double>());
+    q.normalize();
+    return SE3(q, m.template block<3, 1>(0, 3).template cast<double>());
+}
 }  // namespace slam_learn::math

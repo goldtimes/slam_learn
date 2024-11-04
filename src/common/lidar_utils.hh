@@ -2,16 +2,20 @@
 
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/io/pcd_io.h>
+#include <pcl_conversions/pcl_conversions.h>
 #include <sensor_msgs/LaserScan.h>
 #include <sensor_msgs/MultiEchoLaserScan.h>
+#include <sensor_msgs/PointCloud2.h>
+#include <sensor_msgs/point_cloud_conversion.h>
 #include "common/eigen_types.hh"
 #include "common/sensors/point_type.hh"
+#include "velodyne_msgs/VelodyneScan.h"
 
 /// 雷达扫描的一些消息定义和工具函数
 using Scan2d = sensor_msgs::LaserScan;
 using MultiScan2d = sensor_msgs::MultiEchoLaserScan;
-// using PacketsMsg = velodyne_msgs::VelodyneScan;
-// using PacketsMsgPtr = boost::shared_ptr<PacketsMsg>;
+using PacketsMsg = velodyne_msgs::VelodyneScan;
+using PacketsMsgPtr = boost::shared_ptr<PacketsMsg>;
 
 namespace slam_learn::lidar_utils {
 // 点云到Eigen的常用的转换函数
@@ -53,6 +57,23 @@ inline void VoxelGrid(CloudPtr cloud, float voxel_size = 0.05) {
     CloudPtr output(new PointCloudXYZI);
     voxel.filter(*output);
     cloud->swap(*output);
+}
+
+/// 对点云进行voxel filter,指定分辨率
+inline CloudPtr VoxelCloud(CloudPtr cloud, float voxel_size = 0.1) {
+    pcl::VoxelGrid<PointXYZI> voxel;
+    voxel.setLeafSize(voxel_size, voxel_size, voxel_size);
+    voxel.setInputCloud(cloud);
+
+    CloudPtr output(new PointCloudXYZI);
+    voxel.filter(*output);
+    return output;
+}
+
+inline CloudPtr PointCloud2ToCloudPtr(sensor_msgs::PointCloud2::Ptr msg) {
+    CloudPtr cloud(new PointCloudXYZI);
+    pcl::fromROSMsg(*msg, *cloud);
+    return cloud;
 }
 
 template <typename CloudType>
