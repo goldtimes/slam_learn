@@ -4,6 +4,7 @@ add_library(${PROJECT_NAME}.ch7
     ndt_inc.cc
     direct_ndt_lo.cc
     incremental_ndt_lo.cc
+    loam-like/feature_extraction.cc
 )
 
 target_link_libraries(${PROJECT_NAME}.ch7
@@ -43,6 +44,18 @@ add_executable(test_inc_ndt
         )
 
 target_link_libraries(test_inc_ndt
+        ${PROJECT_NAME}.ch5
+        ${PROJECT_NAME}.ch7
+        ${PROJECT_NAME}.common
+        ${third_party_libs}
+)
+
+# feature extraction
+add_executable(test_feature_extraction
+        test/test_feature_extraction.cc
+        )
+
+target_link_libraries(test_feature_extraction
         ${PROJECT_NAME}.ch5
         ${PROJECT_NAME}.ch7
         ${PROJECT_NAME}.common

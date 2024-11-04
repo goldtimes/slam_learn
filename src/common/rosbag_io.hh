@@ -7,12 +7,15 @@
 #include <map>
 #include <utility>
 #include "common/dataset_type.hh"
+#include "common/lidar_utils.hh"
 #include "common/sensors/gnss.hh"
 #include "common/sensors/imu.hh"
 #include "common/sensors/point_type.hh"
 #include "lidar_slam/ch3//utm_convert.hh"
 #include "livox_ros_driver/CustomMsg.h"
 #include "rosbag/message_instance.h"
+#include "tools/pointcloud_convert/velodyne_convertor.h"
+
 namespace slam_learn::rosbag_io {
 /**
  * @brief rosbagio 会定义一个回调函数，然后被测试程序告诉rosbag io如何出来改测试的数据
@@ -127,6 +130,21 @@ class RosbagIO {
         });
     }
 
+    /// wxb的velodyne packets处理
+    RosbagIO& AddVelodyneHandle(const std::string& topic_name, FullPointCloudHandle f) {
+        return AddHandle(topic_name, [f, this](const rosbag::MessageInstance& m) -> bool {
+            auto msg = m.instantiate<PacketsMsg>();
+            if (msg == nullptr) {
+                return false;
+            }
+
+            FullCloudPtr cloud(new FullPointCloudType), cloud_out(new FullPointCloudType);
+            vlp_parser_.ProcessScan(msg, cloud);
+
+            return f(cloud);
+        });
+    }
+
     void CleanProcessFunc() {
         process_func_.clear();
     }
@@ -146,5 +164,6 @@ class RosbagIO {
     // 数据集
     DatasetType dataset_type_;
     std::map<std::string, std::function<bool(const rosbag::MessageInstance&)>> process_func_;
+    tools::VelodyneConvertor vlp_parser_;
 };
 }  // namespace slam_learn::rosbag_io
