@@ -5,6 +5,8 @@ add_library(${PROJECT_NAME}.ch7
     direct_ndt_lo.cc
     incremental_ndt_lo.cc
     loam-like/feature_extraction.cc
+    loam-like/loam_like_odom.cc
+
 )
 
 target_link_libraries(${PROJECT_NAME}.ch7
@@ -56,6 +58,18 @@ add_executable(test_feature_extraction
         )
 
 target_link_libraries(test_feature_extraction
+        ${PROJECT_NAME}.ch5
+        ${PROJECT_NAME}.ch7
+        ${PROJECT_NAME}.common
+        ${third_party_libs}
+)
+
+# feature extraction
+add_executable(test_loam_odom
+        test/test_loam_odom.cc
+        )
+
+target_link_libraries(test_loam_odom
         ${PROJECT_NAME}.ch5
         ${PROJECT_NAME}.ch7
         ${PROJECT_NAME}.common

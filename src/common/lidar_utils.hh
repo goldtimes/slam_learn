@@ -83,6 +83,28 @@ void SaveCloudToFile(const std::string& filePath, CloudType& cloud) {
     pcl::io::savePCDFileASCII(filePath, cloud);
 }
 
+/**
+ * 其他类型点云转到PointType点云
+ * 用的最多的是全量点云转到XYZI点云
+ * @tparam PointT
+ * @param input
+ * @return
+ */
+template <typename PointT = FullPointType>
+CloudPtr ConvertToCloud(typename pcl::PointCloud<PointT>::Ptr input) {
+    CloudPtr cloud(new PointCloudXYZI);
+    for (auto& pt : input->points) {
+        PointXYZI p;
+        p.x = pt.x;
+        p.y = pt.y;
+        p.z = pt.z;
+        p.intensity = pt.intensity;
+        cloud->points.template emplace_back(p);
+    }
+    cloud->width = input->width;
+    return cloud;
+}
+
 template <typename S, int n>
 inline Eigen::Matrix<int, n, 1> CastToInt(const Eigen::Matrix<S, n, 1>& value) {
     return value.array().template round().template cast<int>();
