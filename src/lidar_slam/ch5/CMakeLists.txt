@@ -1,3 +1,4 @@
+find_package(GTest REQUIRED)
 add_executable(pcd_to_bird_eye pcd_to_bird_eye.cc)
 target_link_libraries(pcd_to_bird_eye
         ${PCL_LIBRARIES}
@@ -26,6 +27,9 @@ target_link_libraries(${PROJECT_NAME}.ch5
 
 ADD_EXECUTABLE(test_nn test/test_nn.cc)
 ADD_TEST(test_nn test_nn)
+#  解决gmock 编译错误问题
 target_link_libraries(test_nn
-        gtest pthread glog gflags ${PROJECT_NAME}.ch5 ${PROJECT_NAME}.common ${PCL_LIBRARIES} tbb
+        ${GTEST_BOTH_LIBRARIES}
+        pthread glog gflags ${PROJECT_NAME}.ch5 ${PROJECT_NAME}.common ${PCL_LIBRARIES} tbb
+        gomp
         )
