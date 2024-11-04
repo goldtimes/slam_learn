@@ -1,6 +1,8 @@
 #include "timer.hh"
 
-namespace timer {
+namespace slam_learn::timer {
+//
+std::map<std::string, Timer::TimerRecord> Timer::records_;
 /// 打印记录的所有耗时
 void Timer::PrintAll() {
 }
@@ -14,4 +16,4 @@ double Timer::GetMeanTime(const std::string& func_name) {
     return 0.0;
 }
 
-}  // namespace timer
+}  // namespace slam_learn::timer

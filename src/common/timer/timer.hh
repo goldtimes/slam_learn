@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-namespace timer {
+namespace slam_learn::timer {
 class Timer {
    public:
     //定义一个结构体，保存函数运行的时间
@@ -51,4 +51,4 @@ class Timer {
    private:
     static std::map<std::string, TimerRecord> records_;
 };
-}  // namespace timer
+}  // namespace slam_learn::timer
