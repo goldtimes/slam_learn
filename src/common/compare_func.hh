@@ -24,7 +24,7 @@ inline bool less_vec<2>::operator()(const Eigen::Matrix<int, 2, 1>& v1, const Ei
 // 实现一个三维的比较
 template <>
 inline bool less_vec<3>::operator()(const Eigen::Matrix<int, 3, 1>& v1, const Eigen::Matrix<int, 3, 1>& v2) const {
-    return v1[0] < v2[0] || (v1[0] == v2[0] && v1[1] < v2[1]) || (v1[0] == v2[0] && v1[1] == v2[1] && v1[3] < v2[3]);
+    return v1[0] < v2[0] || (v1[0] == v2[0] && v1[1] < v2[1]) || (v1[0] == v2[0] && v1[1] == v2[1] && v1[2] < v2[2]);
 }
 
 // 二维的hash

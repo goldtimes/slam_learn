@@ -63,6 +63,32 @@ void ComputeMeanAndCov(const C& datas, Eigen::Matrix<double, dim, 1>& mean, Eige
           (len - 1);
 }
 
+/**
+ * 高斯分布合并 这里就是书上的公式了
+ * @tparam S    scalar type
+ * @tparam D    dimension
+ * @param hist_m        历史点数
+ * @param curr_n        当前点数
+ * @param hist_mean     历史均值
+ * @param hist_var      历史方差
+ * @param curr_mean     当前均值
+ * @param curr_var      当前方差
+ * @param new_mean      新的均值
+ * @param new_var       新的方差
+ */
+template <typename S, int D>
+void UpdateMeanAndCov(int hist_m, int curr_n, const Eigen::Matrix<S, D, 1>& hist_mean,
+                      const Eigen::Matrix<S, D, D>& hist_var, const Eigen::Matrix<S, D, 1>& curr_mean,
+                      const Eigen::Matrix<S, D, D>& curr_var, Eigen::Matrix<S, D, 1>& new_mean,
+                      Eigen::Matrix<S, D, D>& new_var) {
+    assert(hist_m > 0);
+    assert(curr_n > 0);
+    new_mean = (hist_m * hist_mean + curr_n * curr_mean) / (hist_m + curr_n);
+    new_var = (hist_m * (hist_var + (hist_mean - new_mean) * (hist_mean - new_mean).template transpose()) +
+               curr_n * (curr_var + (curr_mean - new_mean) * (curr_mean - new_mean).template transpose())) /
+              (hist_m + curr_n);
+}
+
 template <typename S>
 bool FitLine2D(const std::vector<Eigen::Matrix<S, 2, 1>>& datas, Eigen::Matrix<S, 3, 1>& coeffs) {
     if (datas.size() < 3) {

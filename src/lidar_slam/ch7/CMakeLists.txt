@@ -1,7 +1,9 @@
 add_library(${PROJECT_NAME}.ch7
     icp_3d.cc
     ndt_3d.cc
+    ndt_inc.cc
     direct_ndt_lo.cc
+    incremental_ndt_lo.cc
 )
 
 target_link_libraries(${PROJECT_NAME}.ch7
@@ -23,12 +25,24 @@ target_link_libraries(test_icp
         ${third_party_libs}
 )
 
-
+# ndt lo
 add_executable(test_ndt_lo
         test/test_ndt_lo.cc
         )
 
 target_link_libraries(test_ndt_lo
+        ${PROJECT_NAME}.ch5
+        ${PROJECT_NAME}.ch7
+        ${PROJECT_NAME}.common
+        ${third_party_libs}
+)
+
+# inc_ndt lo
+add_executable(test_inc_ndt
+        test/test_inc_ndt.cc
+        )
+
+target_link_libraries(test_inc_ndt
         ${PROJECT_NAME}.ch5
         ${PROJECT_NAME}.ch7
         ${PROJECT_NAME}.common
