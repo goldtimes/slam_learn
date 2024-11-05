@@ -46,7 +46,7 @@ bool LooselyLIO::Init(const std::string &config_yaml) {
 }
 
 bool LooselyLIO::LoadFromYAML(const std::string &yaml_file) {
-    sync_ = std::make_shared<loosely::MessageSync>([&](const MeasureGroup &group) { ProcessMeasurements(group); });
+    sync_ = std::make_shared<MessageSync>([&](const MeasureGroup &group) { ProcessMeasurements(group); });
     sync_->Init(yaml_file);
 
     // lidar到imu外参

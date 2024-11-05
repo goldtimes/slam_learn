@@ -8,7 +8,7 @@
 #include "common/sensors/imu.hh"
 #include "common/sensors/point_type.hh"
 
-namespace slam_learn::loosely {
+namespace slam_learn {
 struct MeasureGroup {
     MeasureGroup() {
         lidar_.reset(new FullPointCloudType);

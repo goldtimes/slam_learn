@@ -89,6 +89,14 @@ class IncNdt3d {
     /// 使用gauss-newton方法进行ndt配准
     bool AlignNdt(SE3& init_pose);
 
+    /**
+     * 计算给定Pose下的雅可比和残差矩阵，符合IEKF中符号（8.17, 8.19）
+     * @param pose
+     * @param HTVH
+     * @param HTVr
+     */
+    void ComputeResidualAndJacobians(const SE3& pose, Mat18d& HTVH, Vec18d& HTVr);
+
    private:
     void GenerateNearbyGrids();
 

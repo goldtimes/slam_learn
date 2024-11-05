@@ -8,7 +8,7 @@
 #include <execution>
 #include <vector>
 
-namespace slam_learn::loosely {
+namespace slam_learn {
 /// 从YAML中读取参数
 void CloudConvert::LoadFromYAML(const std::string &yaml) {
     YAML::Node config = YAML::LoadFile(yaml);
@@ -196,4 +196,4 @@ void CloudConvert::VelodyneHandler(const sensor_msgs::PointCloud2::ConstPtr &msg
         }
     }
 }
-}  // namespace slam_learn::loosely
+}  // namespace slam_learn

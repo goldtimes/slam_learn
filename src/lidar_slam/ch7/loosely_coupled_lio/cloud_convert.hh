@@ -6,7 +6,7 @@
 #include <pcl_conversions/pcl_conversions.h>
 #include "common/sensors/point_type.hh"
 
-namespace slam_learn::loosely {
+namespace slam_learn {
 class CloudConvert {
    public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -47,4 +47,4 @@ class CloudConvert {
     int num_scans_ = 6;                          // 扫描线数
     float time_scale_ = 1e-3;                    // 雷达点的时间字段与秒的比例
 };
-}  // namespace slam_learn::loosely
+}  // namespace slam_learn

@@ -1,6 +1,6 @@
 #include "lidar_slam/ch7/loosely_coupled_lio/measure_sync.hh"
 
-namespace slam_learn::loosely {
+namespace slam_learn {
 /// 初始化
 void MessageSync::Init(const std::string& yaml) {
     cloud_convert_->LoadFromYAML(yaml);
@@ -47,4 +47,4 @@ bool MessageSync::Sync() {
     }
     return true;
 }
-}  // namespace slam_learn::loosely
+}  // namespace slam_learn
