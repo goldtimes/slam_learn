@@ -30,10 +30,10 @@ int main(int argc, char** argv) {
             timer::Timer::Evaluate([&]() { lm.PCLCallBack(cloud); }, "loosely lio");
             return true;
         })
-        .AddLivoxHandle([&](const livox_ros_driver::CustomMsg::ConstPtr& msg) -> bool {
-            timer::Timer::Evaluate([&]() { lm.LivoxPCLCallBack(msg); }, "loosely lio");
-            return true;
-        })
+        // .AddLivoxHandle([&](const livox_ros_driver::CustomMsg::ConstPtr& msg) -> bool {
+        //     timer::Timer::Evaluate([&]() { lm.LivoxPCLCallBack(msg); }, "loosely lio");
+        //     return true;
+        // })
         .AddImuHandle([&](IMUPtr imu) {
             lm.IMUCallBack(imu);
             return true;

@@ -81,18 +81,18 @@ class RosbagIO {
     /// 根据数据集类型自动确定topic名称
     RosbagIO& AddAutoPointCloudHandle(PointCloud2Handle f) {
         if (dataset_type_ == DatasetType::WXB_3D) {
-            // return AddHandle(wxb_lidar_topic, [f, this](const rosbag::MessageInstance& m) -> bool {
-            //     auto msg = m.instantiate<PacketsMsg>();
-            //     if (msg == nullptr) {
-            //         return false;
-            //     }
+            return AddHandle(wxb_lidar_topic, [f, this](const rosbag::MessageInstance& m) -> bool {
+                auto msg = m.instantiate<PacketsMsg>();
+                if (msg == nullptr) {
+                    return false;
+                }
 
-            //     FullCloudPtr cloud(new FullPointCloudType), cloud_out(new FullPointCloudType);
-            //     vlp_parser_.ProcessScan(msg, cloud);
-            //     sensor_msgs::PointCloud2::Ptr cloud_msg(new sensor_msgs::PointCloud2);
-            //     pcl::toROSMsg(*cloud, *cloud_msg);
-            //     return f(cloud_msg);
-            // });
+                FullCloudPtr cloud(new FullPointCloudType), cloud_out(new FullPointCloudType);
+                vlp_parser_.ProcessScan(msg, cloud);
+                sensor_msgs::PointCloud2::Ptr cloud_msg(new sensor_msgs::PointCloud2);
+                pcl::toROSMsg(*cloud, *cloud_msg);
+                return f(cloud_msg);
+            });
         } else if (dataset_type_ == DatasetType::AVIA) {
             // AVIA 不能直接获取point cloud 2
             return *this;

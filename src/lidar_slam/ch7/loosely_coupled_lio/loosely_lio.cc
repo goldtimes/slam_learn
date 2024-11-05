@@ -154,7 +154,7 @@ void LooselyLIO::Align() {
     scan_undistort_ = scan_undistort_body;
     // filter
     auto current_scan = lidar_utils::ConvertToCloud(scan_undistort_);
-    lidar_utils::VoxelGrid(current_scan);
+    lidar_utils::VoxelGrid(current_scan, 0.5);
     // 处理首帧雷达
     /// 处理首帧雷达数据
     if (flg_first_scan_) {
