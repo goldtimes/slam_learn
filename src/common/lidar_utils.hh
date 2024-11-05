@@ -109,4 +109,11 @@ template <typename S, int n>
 inline Eigen::Matrix<int, n, 1> CastToInt(const Eigen::Matrix<S, n, 1>& value) {
     return value.array().template round().template cast<int>();
 }
+
+inline Vec3f ToVec3f(const FullPointType& pt) {
+    return pt.getVector3fMap();
+}
+inline Vec3d ToVec3d(const FullPointType& pt) {
+    return pt.getVector3fMap().cast<double>();
+}
 }  // namespace slam_learn::lidar_utils

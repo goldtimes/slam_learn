@@ -98,6 +98,7 @@ set(third_party_libs
     ${Pangolin_LIBRARIES}
     ${Boost_LIBRARIES}
     ${yaml-cpp_LIBRARIES}
+    yaml-cpp
     gtsam
     glog
     gflags
