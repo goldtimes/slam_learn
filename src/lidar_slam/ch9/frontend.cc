@@ -139,8 +139,10 @@ void Frontend::FindGPSPose(std::shared_ptr<Keyframe> kf) {
     GNSSPtr match;
     if (math::PoseInterp<GNSSPtr>(kf->timestamped_, gnss_datas_,
                                   [](const GNSSPtr& gnss) -> SE3 { return gnss->utm_pose_; }, pose, match)) {
+        kf->rtk_pose_ = pose;
+        kf->rtk_valid_ = true;
     } else {
-        
+        kf->rtk_valid_ = false;
     }
 }
 

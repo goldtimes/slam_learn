@@ -40,7 +40,7 @@ struct Keyframe {
     CloudPtr cloud_ = nullptr;
 };
 
-bool LoadKeyFrames(const std::string& path, std::map<int, std::shared_ptr<Keyframe>>& keyframes);
+bool LoadKeyFrames(const std::string& path, std::map<unsigned long, std::shared_ptr<Keyframe>>& keyframes);
 
 }  // namespace slam_learn::mapping
 

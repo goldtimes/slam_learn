@@ -1,8 +1,8 @@
 add_library(${PROJECT_NAME}.ch9
         frontend.cc
         keyframe.cc
-        # optimization.cc
-        # loopclosure.cc
+        optimization.cc
+        loopclosure.cc
         )
 
 target_link_libraries(${PROJECT_NAME}.ch9
@@ -18,4 +18,9 @@ target_link_libraries(run_frontend
                 ${PROJECT_NAME}.ch9
                 ${third_party_libs}
                 )
+add_executable(run_mapping test/run_mapping.cc)
+target_link_libraries(run_mapping
+                        ${PROJECT_NAME}.ch9
+                        ${third_party_libs}
+                        )
         

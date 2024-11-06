@@ -264,6 +264,44 @@ class EdgeGNSS : public g2o::BaseUnaryEdge<6, SE3, VertexPose> {
     }
 };
 
+class EdgeGNSSTransOnly : public g2o::BaseUnaryEdge<3, Vec3d, VertexPose> {
+   public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
+    /**
+     * 指定位姿顶点、RTK观测 t_WG、外参TGB
+     * @param v
+     * @param obs
+     */
+    EdgeGNSSTransOnly(VertexPose* v, const Vec3d& obs, const SE3& TBG) : TBG_(TBG) {
+        setVertex(0, v);
+        setMeasurement(obs);
+    }
+
+    void computeError() override {
+        VertexPose* v = (VertexPose*)_vertices[0];
+        _error = (v->estimate() * TBG_).translation() - _measurement;
+    };
+
+    // void linearizeOplus() override {
+    //     VertexPose* v = (VertexPose*)_vertices[0];
+    //     // jacobian 6x6
+    //     _jacobianOplusXi.setZero();
+    //     _jacobianOplusXi.block<3, 3>(0, 0) = (_measurement.so3().inverse() * v->estimate().so3()).jr_inv();  // dR/dR
+    //     _jacobianOplusXi.block<3, 3>(3, 3) = Mat3d::Identity();                                              // dp/dp
+    // }
+
+    virtual bool read(std::istream& in) {
+        return true;
+    }
+    virtual bool write(std::ostream& out) const {
+        return true;
+    }
+
+   private:
+    SE3 TBG_;
+};
+
 /**
  * @brief 提供两帧之间的里程计约束
  */

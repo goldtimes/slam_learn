@@ -59,7 +59,7 @@ void Keyframe::Load(std::istream& is) {
     opti_pose_2_ = load_se3(is);
 }
 
-bool LoadKeyFrames(const std::string& path, std::map<int, std::shared_ptr<Keyframe>>& keyframes) {
+bool LoadKeyFrames(const std::string& path, std::map<unsigned long, std::shared_ptr<Keyframe>>& keyframes) {
     std::ifstream fin(path);
     if (!fin) {
         return false;
