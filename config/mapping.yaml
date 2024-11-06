@@ -1,5 +1,5 @@
 YAML: 1.0
-bag_path: /home/xiang/Data/nclt/20130110.bag
+bag_path: /home/kilox/slam_auto_driving/nclt/20130110.bag
 lio_yaml: ./config/velodyne_nclt.yaml
 map_data: ./data/ch9/map_data/
 origin:

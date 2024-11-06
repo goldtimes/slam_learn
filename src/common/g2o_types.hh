@@ -318,19 +318,20 @@ class EdgeRelativeMotion : public g2o::BaseBinaryEdge<6, SE3, VertexPose, Vertex
         SE3 T12 = v1->estimate().inverse() * v2->estimate();
         _error = (_measurement.inverse() * v1->estimate().inverse() * v2->estimate()).log();
     }
-    void linearizeOplus() override {
-        VertexPose* vertex1 = dynamic_cast<VertexPose*>(_vertices[0]);
-        VertexPose* verte2 = dynamic_cast<VertexPose*>(_vertices[1]);
-        _jacobianOplusXi.setZero();
-        // derror_R / dRi  这里的R是vector的R
-        _jacobianOplusXi.block<3, 3>(0, 0) = Mat3d::Zero();
-        // derror_R / dpi
-        _jacobianOplusXi.block<3, 3>(0, 3) = Mat3d::Zero();
-        // derror_p / dRj
-        _jacobianOplusXi.block<3, 3>(3, 0) = Mat3d::Zero();
-        // derror_p / dpj
-        _jacobianOplusXi.block<3, 3>(3, 3) = Mat3d::Zero();
-    }
+    // 不重写这个函数，g2o将调用自己的数值求导
+    // void linearizeOplus() override {
+    //     VertexPose* vertex1 = dynamic_cast<VertexPose*>(_vertices[0]);
+    //     VertexPose* verte2 = dynamic_cast<VertexPose*>(_vertices[1]);
+    //     _jacobianOplusXi.setZero();
+    //     // derror_R / dRi  这里的R是vector的R
+    //     _jacobianOplusXi.block<3, 3>(0, 0) = Mat3d::Zero();
+    //     // derror_R / dpi
+    //     _jacobianOplusXi.block<3, 3>(0, 3) = Mat3d::Zero();
+    //     // derror_p / dRj
+    //     _jacobianOplusXi.block<3, 3>(3, 0) = Mat3d::Zero();
+    //     // derror_p / dpj
+    //     _jacobianOplusXi.block<3, 3>(3, 3) = Mat3d::Zero();
+    // }
     Eigen::Matrix<double, 6, 6> GetHessian() {
         linearizeOplus();
         return _jacobianOplusXi.transpose() * information() * _jacobianOplusXi;
