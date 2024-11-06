@@ -1,11 +1,11 @@
+
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
-#include "lidar_slam/ch9/frontend.hh"
-
-// 测试前端的工作情况
+#include "lidar_slam/ch9/optimization.hh"
 
 DEFINE_string(config_yaml, "/home/kilox/hang_ws/src/slam_learn/config/mapping.yaml", "配置文件");
+DEFINE_int64(stage, 1, "运行第1阶段或第2阶段优化");
 
 int main(int argc, char** argv) {
     google::InitGoogleLogging(argv[0]);
@@ -13,13 +13,15 @@ int main(int argc, char** argv) {
     FLAGS_colorlogtostderr = true;
     google::ParseCommandLineFlags(&argc, &argv, true);
 
-    LOG(INFO) << "testing frontend";
-    slam_learn::mapping::Frontend frontend(FLAGS_config_yaml);
-    if (!frontend.Init()) {
+    assert(FLAGS_stage == 1 || FLAGS_stage == 2);
+
+    LOG(INFO) << "testing optimization";
+    slam_learn::mapping::Optimization opti(FLAGS_config_yaml);
+    if (!opti.Init(FLAGS_stage)) {
         LOG(ERROR) << "failed to init frontend.";
         return -1;
     }
 
-    frontend.Run();
+    opti.Run();
     return 0;
 }

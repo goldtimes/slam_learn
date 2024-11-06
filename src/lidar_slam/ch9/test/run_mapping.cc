@@ -5,7 +5,7 @@
 #include "lidar_slam/ch9/loopclosure.hh"
 #include "lidar_slam/ch9/optimization.hh"
 
-DEFINE_string(config_yaml, "./config/mapping.yaml", "配置文件");
+DEFINE_string(config_yaml, "/home/kilox/hang_ws/src/slam_learn/config/mapping.yaml", "配置文件");
 
 int main(int argc, char** argv) {
     google::InitGoogleLogging(argv[0]);

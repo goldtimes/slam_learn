@@ -21,7 +21,7 @@ LoopClosure::LoopClosure(const std::string& config_yaml) : yaml_(config_yaml) {
 }
 
 bool LoopClosure::Init() {
-    if (!LoadKeyFrames("./data/ch9/keyframes.txt", keyframes_)) {
+    if (!LoadKeyFrames("/home/kilox/hang_ws/src/slam_learn/data/ch9/keyframes.txt", keyframes_)) {
         LOG(ERROR) << "cannot load keyframes";
         return false;
     }

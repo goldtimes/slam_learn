@@ -57,7 +57,7 @@ Optimization::Optimization(const std::string& yaml) {
 bool Optimization::Init(int stage) {
     stage_ = stage;
     // 加载所有的keyframe
-    if (!LoadKeyFrames("./data/ch9/keyframes.txt", keyframes_)) {
+    if (!LoadKeyFrames("/home/kilox/hang_ws/src/slam_learn/data/ch9/keyframes.txt", keyframes_)) {
         LOG(ERROR) << "cannot load keyframes.txt";
         return false;
     }
@@ -140,7 +140,8 @@ void Optimization::Run() {
 void Optimization::InitialAlign() {
     // 取出lidar_pose
     // 取出rtk_pose
-    std::vector<Vec3d> lidar_pts, rtk_pts;
+    std::vector<Vec3d> lidar_pts;
+    std::vector<Vec3d> rtk_pts;
     for (const auto& kfp : keyframes_) {
         lidar_pts.emplace_back(kfp.second->lidar_pose_.translation());
         rtk_pts.emplace_back(kfp.second->rtk_pose_.translation());
@@ -155,8 +156,8 @@ void Optimization::InitialAlign() {
     lidar_center /= lidar_pose_size;
     rtk_center /= lidar_pose_size;
     LOG(INFO) << "lidar_center: " << lidar_center.transpose() << ", rtk_center: " << rtk_center.transpose();
-    std::vector<Vec3d> lidar_rm_center_pts;
-    std::vector<Vec3d> rtk_rm_center_pts;
+    std::vector<Vec3d> lidar_rm_center_pts(lidar_pose_size);
+    std::vector<Vec3d> rtk_rm_center_pts(lidar_pose_size);
     // 所有点remove center
     for (int i = 0; i < lidar_pose_size; ++i) {
         lidar_rm_center_pts[i] = lidar_pts[i] - lidar_center;

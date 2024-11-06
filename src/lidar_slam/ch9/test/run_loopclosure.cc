@@ -1,9 +1,8 @@
+
 #include <gflags/gflags.h>
 #include <glog/logging.h>
 
-#include "lidar_slam/ch9/frontend.hh"
-
-// 测试前端的工作情况
+#include "lidar_slam/ch9/loopclosure.hh"
 
 DEFINE_string(config_yaml, "/home/kilox/hang_ws/src/slam_learn/config/mapping.yaml", "配置文件");
 
@@ -13,13 +12,9 @@ int main(int argc, char** argv) {
     FLAGS_colorlogtostderr = true;
     google::ParseCommandLineFlags(&argc, &argv, true);
 
-    LOG(INFO) << "testing frontend";
-    slam_learn::mapping::Frontend frontend(FLAGS_config_yaml);
-    if (!frontend.Init()) {
-        LOG(ERROR) << "failed to init frontend.";
-        return -1;
-    }
+    slam_learn::mapping::LoopClosure lc(FLAGS_config_yaml);
+    lc.Init();
+    lc.Run();
 
-    frontend.Run();
     return 0;
 }

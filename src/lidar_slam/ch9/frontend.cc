@@ -49,12 +49,14 @@ void Frontend::Run() {
     slam_learn::rosbag_io::RosbagIO bag_io(bag_path_, DatasetType::NCLT);
     // 先读取所有的rtk数据
     // rosbag io 负责读取和生成gnss数据
-    bag_io.AddAutoRTKHandle([this](GNSSPtr gnss) {
-        // 这里只需要定义生成的数据如何处理
-        // 放到队列中
-        gnss_datas_.emplace(gnss->unix_time_, gnss);
-        return true;
-    });
+    bag_io
+        .AddAutoRTKHandle([this](GNSSPtr gnss) {
+            // 这里只需要定义生成的数据如何处理
+            // 放到队列中
+            gnss_datas_.emplace(gnss->unix_time_, gnss);
+            return true;
+        })
+        .Go();
     bag_io.CleanProcessFunc();
     RemoveMapOrigin();
     // 运行lio
@@ -90,7 +92,7 @@ void Frontend::RemoveMapOrigin() {
             origin_set = true;
             LOG(INFO) << "map origin is set to " << map_origin_.transpose();
             // 写入yaml
-            auto yaml = YAML::Load(config_yaml_);
+            auto yaml = YAML::LoadFile(config_yaml_);
             std::vector<double> ori{map_origin_[0], map_origin_[1], map_origin_[2]};
             yaml["origin"] = ori;
             std::ofstream fout(config_yaml_);
