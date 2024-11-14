@@ -1,4 +1,5 @@
 add_subdirectory(common)
+add_subdirectory(ikd_Tree)
 # add_subdirectory(ch2)
 add_subdirectory(lidar_slam/ch3)
 add_subdirectory(lidar_slam/ch4)
