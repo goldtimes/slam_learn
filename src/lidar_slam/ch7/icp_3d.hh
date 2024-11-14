@@ -60,6 +60,9 @@ class Icp3d {
     /// 基于gauss-newton的点面ICP
     bool AlignP2Plane(SE3& init_pose);
 
+    /// 基于LM算法的点面ICP
+    bool AlignP2PlaneLM(SE3& init_pose);
+
    private:
     void BuildTargetTree();
 

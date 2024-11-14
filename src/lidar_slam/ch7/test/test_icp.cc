@@ -49,25 +49,25 @@ int main(int argc, char** argv) {
 
     bool success;
 
-    evaluate_and_call(
-        [&]() {
-            icp_3d::Icp3d icp;
-            icp.SetSource(source);
-            icp.SetTarget(target);
-            icp.SetGroundTruth(gt_pose);
-            SE3 pose;
-            success = icp.AlignP2P(pose);
-            if (success) {
-                LOG(INFO) << "icp p2p align success, pose: " << pose.so3().unit_quaternion().coeffs().transpose()
-                          << ", " << pose.translation().transpose();
-                CloudPtr source_trans(new PointCloudXYZI);
-                pcl::transformPointCloud(*source, *source_trans, pose.matrix().cast<float>());
-                lidar_utils::SaveCloudToFile("./data/ch7/icp_trans.pcd", *source_trans);
-            } else {
-                LOG(ERROR) << "align failed.";
-            }
-        },
-        "ICP P2P", 1);
+    // evaluate_and_call(
+    //     [&]() {
+    //         icp_3d::Icp3d icp;
+    //         icp.SetSource(source);
+    //         icp.SetTarget(target);
+    //         icp.SetGroundTruth(gt_pose);
+    //         SE3 pose;
+    //         success = icp.AlignP2P(pose);
+    //         if (success) {
+    //             LOG(INFO) << "icp p2p align success, pose: " << pose.so3().unit_quaternion().coeffs().transpose()
+    //                       << ", " << pose.translation().transpose();
+    //             CloudPtr source_trans(new PointCloudXYZI);
+    //             pcl::transformPointCloud(*source, *source_trans, pose.matrix().cast<float>());
+    //             lidar_utils::SaveCloudToFile("./data/ch7/icp_trans.pcd", *source_trans);
+    //         } else {
+    //             LOG(ERROR) << "align failed.";
+    //         }
+    //     },
+    //     "ICP P2P", 1);
 
     /// 点到面
     evaluate_and_call(
@@ -90,7 +90,7 @@ int main(int argc, char** argv) {
         },
         "ICP P2Plane", 1);
 
-    /// 点到线
+    /// 点到面 LM
     evaluate_and_call(
         [&]() {
             icp_3d::Icp3d icp;
@@ -98,83 +98,104 @@ int main(int argc, char** argv) {
             icp.SetTarget(target);
             icp.SetGroundTruth(gt_pose);
             SE3 pose;
-            success = icp.AlignP2Line(pose);
+            success = icp.AlignP2PlaneLM(pose);
             if (success) {
-                LOG(INFO) << "icp p2line align success, pose: " << pose.so3().unit_quaternion().coeffs().transpose()
+                LOG(INFO) << "icp p2planeLM align success, pose: " << pose.so3().unit_quaternion().coeffs().transpose()
                           << ", " << pose.translation().transpose();
                 CloudPtr source_trans(new PointCloudXYZI);
                 pcl::transformPointCloud(*source, *source_trans, pose.matrix().cast<float>());
-                lidar_utils::SaveCloudToFile("./data/ch7/icp_line_trans.pcd", *source_trans);
+                lidar_utils::SaveCloudToFile("./data/ch7/icp_plane_trans_lm.pcd", *source_trans);
             } else {
                 LOG(ERROR) << "align failed.";
             }
         },
-        "ICP P2Line", 1);
+        "ICP P2PlaneLM", 1);
 
-    /// 第７章的NDT
-    evaluate_and_call(
-        [&]() {
-            ndt_3d::Ndt3d::Options options;
-            options.voxel_size_ = 0.5;
-            options.remove_centroid_ = true;
-            options.nearby_type_ = ndt_3d::Ndt3d::NearbyType::CENTER;
-            ndt_3d::Ndt3d ndt(options);
-            ndt.SetSource(source);
-            ndt.SetTarget(target);
-            ndt.SetGtPose(gt_pose);
-            SE3 pose;
-            success = ndt.AlignNdt(pose);
-            if (success) {
-                LOG(INFO) << "ndt align success, pose: " << pose.so3().unit_quaternion().coeffs().transpose() << ", "
-                          << pose.translation().transpose();
-                CloudPtr source_trans(new PointCloudXYZI);
-                pcl::transformPointCloud(*source, *source_trans, pose.matrix().cast<float>());
-                lidar_utils::SaveCloudToFile("./data/ch7/ndt_trans.pcd", *source_trans);
-            } else {
-                LOG(ERROR) << "align failed.";
-            }
-        },
-        "NDT", 1);
+    // /// 点到线
+    // evaluate_and_call(
+    //     [&]() {
+    //         icp_3d::Icp3d icp;
+    //         icp.SetSource(source);
+    //         icp.SetTarget(target);
+    //         icp.SetGroundTruth(gt_pose);
+    //         SE3 pose;
+    //         success = icp.AlignP2Line(pose);
+    //         if (success) {
+    //             LOG(INFO) << "icp p2line align success, pose: " << pose.so3().unit_quaternion().coeffs().transpose()
+    //                       << ", " << pose.translation().transpose();
+    //             CloudPtr source_trans(new PointCloudXYZI);
+    //             pcl::transformPointCloud(*source, *source_trans, pose.matrix().cast<float>());
+    //             lidar_utils::SaveCloudToFile("./data/ch7/icp_line_trans.pcd", *source_trans);
+    //         } else {
+    //             LOG(ERROR) << "align failed.";
+    //         }
+    //     },
+    //     "ICP P2Line", 1);
 
-    /// PCL ICP 作为备选
-    evaluate_and_call(
-        [&]() {
-            pcl::IterativeClosestPoint<PointXYZI, PointXYZI> icp_pcl;
-            icp_pcl.setInputSource(source);
-            icp_pcl.setInputTarget(target);
-            CloudPtr output_pcl(new PointCloudXYZI);
-            icp_pcl.align(*output_pcl);
-            SE3f T = SE3f(icp_pcl.getFinalTransformation());
-            LOG(INFO) << "pose from icp pcl: " << T.so3().unit_quaternion().coeffs().transpose() << ", "
-                      << T.translation().transpose();
-            lidar_utils::SaveCloudToFile("./data/ch7/pcl_icp_trans.pcd", *output_pcl);
+    // /// 第７章的NDT
+    // evaluate_and_call(
+    //     [&]() {
+    //         ndt_3d::Ndt3d::Options options;
+    //         options.voxel_size_ = 0.5;
+    //         options.remove_centroid_ = true;
+    //         options.nearby_type_ = ndt_3d::Ndt3d::NearbyType::CENTER;
+    //         ndt_3d::Ndt3d ndt(options);
+    //         ndt.SetSource(source);
+    //         ndt.SetTarget(target);
+    //         ndt.SetGtPose(gt_pose);
+    //         SE3 pose;
+    //         success = ndt.AlignNdt(pose);
+    //         if (success) {
+    //             LOG(INFO) << "ndt align success, pose: " << pose.so3().unit_quaternion().coeffs().transpose() << ", "
+    //                       << pose.translation().transpose();
+    //             CloudPtr source_trans(new PointCloudXYZI);
+    //             pcl::transformPointCloud(*source, *source_trans, pose.matrix().cast<float>());
+    //             lidar_utils::SaveCloudToFile("./data/ch7/ndt_trans.pcd", *source_trans);
+    //         } else {
+    //             LOG(ERROR) << "align failed.";
+    //         }
+    //     },
+    //     "NDT", 1);
 
-            // 计算GT pose差异
-            double pose_error = (gt_pose.inverse() * T.cast<double>()).log().norm();
-            LOG(INFO) << "ICP PCL pose error: " << pose_error;
-        },
-        "ICP PCL", 1);
+    // /// PCL ICP 作为备选
+    // evaluate_and_call(
+    //     [&]() {
+    //         pcl::IterativeClosestPoint<PointXYZI, PointXYZI> icp_pcl;
+    //         icp_pcl.setInputSource(source);
+    //         icp_pcl.setInputTarget(target);
+    //         CloudPtr output_pcl(new PointCloudXYZI);
+    //         icp_pcl.align(*output_pcl);
+    //         SE3f T = SE3f(icp_pcl.getFinalTransformation());
+    //         LOG(INFO) << "pose from icp pcl: " << T.so3().unit_quaternion().coeffs().transpose() << ", "
+    //                   << T.translation().transpose();
+    //         lidar_utils::SaveCloudToFile("./data/ch7/pcl_icp_trans.pcd", *output_pcl);
 
-    /// PCL NDT 作为备选
-    evaluate_and_call(
-        [&]() {
-            pcl::NormalDistributionsTransform<PointXYZI, PointXYZI> ndt_pcl;
-            ndt_pcl.setInputSource(source);
-            ndt_pcl.setInputTarget(target);
-            ndt_pcl.setResolution(0.5);
-            CloudPtr output_pcl(new PointCloudXYZI);
-            ndt_pcl.align(*output_pcl);
-            SE3f T = SE3f(ndt_pcl.getFinalTransformation());
-            LOG(INFO) << "pose from ndt pcl: " << T.so3().unit_quaternion().coeffs().transpose() << ", "
-                      << T.translation().transpose() << ', trans: ' << ndt_pcl.getTransformationProbability();
-            lidar_utils::SaveCloudToFile("./data/ch7/pcl_ndt_trans.pcd", *output_pcl);
-            LOG(INFO) << "score: " << ndt_pcl.getTransformationProbability();
+    //         // 计算GT pose差异
+    //         double pose_error = (gt_pose.inverse() * T.cast<double>()).log().norm();
+    //         LOG(INFO) << "ICP PCL pose error: " << pose_error;
+    //     },
+    //     "ICP PCL", 1);
 
-            // 计算GT pose差异
-            double pose_error = (gt_pose.inverse() * T.cast<double>()).log().norm();
-            LOG(INFO) << "NDT PCL pose error: " << pose_error;
-        },
-        "NDT PCL", 1);
+    // /// PCL NDT 作为备选
+    // evaluate_and_call(
+    //     [&]() {
+    //         pcl::NormalDistributionsTransform<PointXYZI, PointXYZI> ndt_pcl;
+    //         ndt_pcl.setInputSource(source);
+    //         ndt_pcl.setInputTarget(target);
+    //         ndt_pcl.setResolution(0.5);
+    //         CloudPtr output_pcl(new PointCloudXYZI);
+    //         ndt_pcl.align(*output_pcl);
+    //         SE3f T = SE3f(ndt_pcl.getFinalTransformation());
+    //         LOG(INFO) << "pose from ndt pcl: " << T.so3().unit_quaternion().coeffs().transpose() << ", "
+    //                   << T.translation().transpose() << ', trans: ' << ndt_pcl.getTransformationProbability();
+    //         lidar_utils::SaveCloudToFile("./data/ch7/pcl_ndt_trans.pcd", *output_pcl);
+    //         LOG(INFO) << "score: " << ndt_pcl.getTransformationProbability();
+
+    //         // 计算GT pose差异
+    //         double pose_error = (gt_pose.inverse() * T.cast<double>()).log().norm();
+    //         LOG(INFO) << "NDT PCL pose error: " << pose_error;
+    //     },
+    //     "NDT PCL", 1);
 
     return 0;
 }
