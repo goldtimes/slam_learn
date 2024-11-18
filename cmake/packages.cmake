@@ -26,8 +26,8 @@ include_directories(${CSPARSE_INCLUDE_DIR})
 find_package(Cholmod REQUIRED)
 include_directories(${CHOLMOD_INCLUDE_DIRS})
 
-#spdlog
-find_package(spdlog REQUIRED)
+# #spdlog
+# find_package(spdlog REQUIRED)
 
 #pcl
 find_package(PCL REQUIRED)
@@ -55,11 +55,11 @@ set(g2o_libs
 )
 
 #ceres
-find_package(Ceres REQUIRED)
+# find_package(Ceres REQUIRED)
 
 #gtsam
-find_package(GTSAM REQUIRED QUIET)
-include_directories(${GTSAM_INCLUDE_DIR})
+# find_package(GTSAM REQUIRED QUIET)
+# include_directories(${GTSAM_INCLUDE_DIR})
 
 #Pangolin
 find_package(Pangolin REQUIRED)
@@ -98,10 +98,10 @@ set(third_party_libs
     ${Pangolin_LIBRARIES}
     ${Boost_LIBRARIES}
     ${yaml-cpp_LIBRARIES}
-    yaml-cpp
-    gtsam
+    yaml-cpp    
+    # gtsam
     glog
     gflags
     tbb
-    spdlog::spdlog_header_only
+    # spdlog::spdlog_header_only
 )
