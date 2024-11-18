@@ -2,7 +2,7 @@
 
 #include "common/eigen_types.hh"
 
-namespace slam_learn::back_end {
+namespace slam_learn::backend {
 /**
  * 模仿g2o的vertex的定义
  */

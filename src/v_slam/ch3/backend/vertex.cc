@@ -1,6 +1,6 @@
 #include "v_slam/ch3/backend/vertex.hh"
 
-namespace slam_learn::back_end {
+namespace slam_learn::backend {
 
 unsigned long Vertex::global_vertex_id = 0;
 
@@ -25,9 +25,4 @@ int Vertex::LocalDimension() const {
 void Vertex::Plus(const Eigen::VectorXd &delta) {
     parameters_ += delta;
 }
-
-/// 返回顶点的名称，在子类中实现
-std::string Vertex::TypeInfo() const {
-    return "";
-}
-}  // namespace slam_learn::back_end
+}  // namespace slam_learn::backend
