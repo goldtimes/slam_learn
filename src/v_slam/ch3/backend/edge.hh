@@ -116,7 +116,7 @@ class Edge {
     double Chi2();
     bool CheckValid();
 
-   private:
+   protected:
     unsigned long id_;  // 边的id
     int ordering_id_;   // edge id in problem
     std::vector<std::string> verticies_types_;

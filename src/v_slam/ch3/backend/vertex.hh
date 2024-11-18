@@ -65,7 +65,7 @@ class Vertex {
     /// 返回顶点的名称，在子类中实现
     virtual std::string TypeInfo() const = 0;
 
-   private:
+   protected:
     // 待优化的变量
     Eigen::VectorXd parameters_;
     // 局部参数的维度，比如四元素
@@ -79,4 +79,4 @@ class Vertex {
 
     static unsigned long global_vertex_id;
 };
-}  // namespace slam_learn::back_end
+}  // namespace slam_learn::backend
