@@ -59,7 +59,7 @@ int main(int argc, char** argv) {
             double x = Pc(0);
             double y = Pc(1);
             double z = Pc(2);
-            double z_2 = z * 2;
+            double z_2 = z * z;
             // 像素点对Pc的jacobian
             Eigen::Matrix<double, 2, 3> jacobian_uv_Pc;
             // clang-format off
