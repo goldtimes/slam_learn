@@ -9,7 +9,7 @@ class VertexInvDepth : public Vertex {
     }
 
     std::string TypeInfo() const {
-        return "VertexInvDepth";
+        return "VertexInverseDepth";
     }
 };
 }  // namespace slam_learn::backend
