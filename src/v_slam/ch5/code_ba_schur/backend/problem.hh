@@ -2,8 +2,8 @@
 #include <map>
 #include <memory>
 #include <unordered_map>
-#include "v_slam/ch3/backend/edge.hh"
-#include "v_slam/ch3/backend/vertex.hh"
+#include "v_slam/ch5/code_ba_schur/backend/edge.hh"
+#include "v_slam/ch5/code_ba_schur/backend/vertex.hh"
 
 namespace slam_learn::backend {
 class Problem {
@@ -59,6 +59,7 @@ class Problem {
 
     // test compute prior
     void TestComputePrior();
+    void TestMarginalize();
 
    private:
     /// Solve的实现，解通用问题
