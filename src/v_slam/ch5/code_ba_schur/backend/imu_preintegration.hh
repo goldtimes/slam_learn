@@ -141,7 +141,7 @@ class IMUIntegration {
     // 数据缓存
     std::vector<double> dt_buf_;
     std::vector<Eigen::Vector3d> acc_buf_;
-    std::vector<Eigen::Vector3d> gy_buf_;
+    std::vector<Eigen::Vector3d> gyr_buf_;
 
     // 预积分量
     double sum_dt_ = 0.0;
