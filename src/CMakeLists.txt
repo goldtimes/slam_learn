@@ -12,8 +12,7 @@ add_subdirectory(v_slam/ch4)
 add_subdirectory(v_slam/ch6)
 add_subdirectory(v_slam/ch7_vo1)
 add_subdirectory(v_slam/ch8_vo2)
-# add_subdirectory(ch6)
-# add_subdirectory(ch9)
-# add_subdirectory(ch10)
+add_subdirectory(v_slam/vins_init)
+
 
 add_subdirectory(tools)
