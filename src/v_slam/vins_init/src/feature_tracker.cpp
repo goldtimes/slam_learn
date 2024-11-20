@@ -141,6 +141,7 @@ void FeatureTracker::readImage(const cv::Mat &_img, double _cur_time) {
         // ROS_DEBUG("temporal optical flow costs: %fms", t_o.toc());
     }
     // 初始为0，识别到特征点之后，根据id将追踪的次数累加上去
+    // 光流追踪之后，通过光流追踪到的有效性特征点，将他们的追踪次数累加
     for (auto &n : track_cnt) n++;
 
     if (PUB_THIS_FRAME) {

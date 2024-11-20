@@ -93,7 +93,7 @@ int main(int argc, char **argv) {
     sConfig_path = argv[2];
 
     pSystem.reset(new System(sConfig_path));
-
+    // 开启后台线程，因为一开始没任何数据就让线程等待
     std::thread thd_BackEnd(&System::ProcessBackEnd, pSystem);
 
     // sleep(5);

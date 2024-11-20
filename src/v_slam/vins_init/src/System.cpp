@@ -40,6 +40,13 @@ System::~System() {
     ofs_pose.close();
 }
 
+/**
+ *  前面的跳了几帧先不管，当一帧喂给feature_tracker之后，提取特征并且赋予id
+    接下来的一帧，利用上一帧的图像，这帧的图像，上一帧的关键点来做单层的光流追踪，追踪可以跟踪到的特征点
+    通过追踪的特征点来得到单应矩阵F,光流追踪之后，通过光流追踪到的有效性特征点，将他们的追踪次数累加，
+    并且设置mask在进行特征提取，提取而外的特征点。利用多次追踪到的点估计速度。
+    这里image的特征追踪就完成了
+ */
 void System::PubImageData(double dStampSec, Mat &img) {
     if (!init_feature) {
         cout << "1 PubImageData skip the first detected feature, which doesn't contain optical flow speed" << endl;
@@ -233,7 +240,10 @@ void System::PubImageData(double dStampSec, std::string filename) {
         }
     }
 }
-
+/**
+    <--------|------------|----------->
+imu_start    image_start          imu_end
+ */  
 vector<pair<vector<ImuConstPtr>, ImgConstPtr>> System::getMeasurements() {
     vector<pair<vector<ImuConstPtr>, ImgConstPtr>> measurements;
 
@@ -276,6 +286,7 @@ vector<pair<vector<ImuConstPtr>, ImgConstPtr>> System::getMeasurements() {
     return measurements;
 }
 
+// imu就很简单的放到buff中
 void System::PubImuData(double dStampSec, const Eigen::Vector3d &vGyr, const Eigen::Vector3d &vAcc) {
     shared_ptr<IMU_MSG> imu_msg(new IMU_MSG());
     imu_msg->header = dStampSec;
