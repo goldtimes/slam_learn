@@ -1,5 +1,6 @@
 #include "v_slam/vins_init/include/feature_tracker.h"
 
+// 特征点的id，全局初始化为0
 int FeatureTracker::n_id = 0;
 
 bool inBorder(const cv::Point2f &pt) {
@@ -120,15 +121,17 @@ void FeatureTracker::readImage(const cv::Mat &_img, double _cur_time) {
     }
 
     forw_pts.clear();
-
+    // 光流追踪
     if (cur_pts.size() > 0) {
         TicToc t_o;
         vector<uchar> status;
         vector<float> err;
+        // 上一帧的图像，这一帧的图像，上一帧的关键点，这一帧的关键点
         cv::calcOpticalFlowPyrLK(cur_img, forw_img, cur_pts, forw_pts, status, err, cv::Size(21, 21), 3);
 
         for (int i = 0; i < int(forw_pts.size()); i++)
             if (status[i] && !inBorder(forw_pts[i])) status[i] = 0;
+        // 根据status的值有效来缩减容器size
         reduceVector(prev_pts, status);
         reduceVector(cur_pts, status);
         reduceVector(forw_pts, status);
@@ -137,10 +140,11 @@ void FeatureTracker::readImage(const cv::Mat &_img, double _cur_time) {
         reduceVector(track_cnt, status);
         // ROS_DEBUG("temporal optical flow costs: %fms", t_o.toc());
     }
-
+    // 初始为0，识别到特征点之后，根据id将追踪的次数累加上去
     for (auto &n : track_cnt) n++;
 
     if (PUB_THIS_FRAME) {
+        // 将光流得到预测的特征点和上一帧的特征点，通过rasance的方法计算单应矩阵，排除一些没有跟上的特征点
         rejectWithF();
         // ROS_DEBUG("set mask begins");
         TicToc t_m;
@@ -154,6 +158,7 @@ void FeatureTracker::readImage(const cv::Mat &_img, double _cur_time) {
             if (mask.empty()) cout << "mask is empty " << endl;
             if (mask.type() != CV_8UC1) cout << "mask type wrong " << endl;
             if (mask.size() != forw_img.size()) cout << "wrong size " << endl;
+            // 特征提取 n_pts特征点的个数
             cv::goodFeaturesToTrack(forw_img, n_pts, MAX_CNT - forw_pts.size(), 0.01, MIN_DIST, mask);
         } else
             n_pts.clear();
@@ -260,8 +265,10 @@ void FeatureTracker::undistortedPoints() {
         Eigen::Vector3d b;
         m_camera->liftProjective(a, b);
         cur_un_pts.push_back(cv::Point2f(b.x() / b.z(), b.y() / b.z()));
+        // map中不允许键是重复的，所以第一图片识别了50个特征点之后，这里只会有最后一个特征点放在cur_un_pts_map中
         cur_un_pts_map.insert(make_pair(ids[i], cv::Point2f(b.x() / b.z(), b.y() / b.z())));
         // printf("cur pts id %d %f %f", ids[i], cur_un_pts[i].x, cur_un_pts[i].y);
+        // printf("cur_un_pts_map size %d \n", cur_un_pts_map.size());
     }
     // caculate points velocity
     if (!prev_un_pts_map.empty()) {

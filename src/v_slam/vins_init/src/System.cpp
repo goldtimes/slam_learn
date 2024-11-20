@@ -6,7 +6,7 @@ using namespace std;
 using namespace cv;
 using namespace pangolin;
 System::System(string sConfig_file_) : bStart_backend(true) {
-    string sConfig_file = sConfig_file_ + "sim_config.yaml";
+    string sConfig_file = sConfig_file_ + "euroc_config.yaml";
 
     cout << "1 System() sConfig_file: " << sConfig_file << endl;
     readParameters(sConfig_file);
@@ -55,6 +55,7 @@ void System::PubImageData(double dStampSec, Mat &img) {
         return;
     }
     // detect unstable camera stream
+    // 间隔时间有问题，于是我们直接重置
     if (dStampSec - last_image_time > 1.0 || dStampSec < last_image_time) {
         cerr << "3 PubImageData image discontinue! reset the feature tracker!" << endl;
         first_image_flag = true;
@@ -64,6 +65,7 @@ void System::PubImageData(double dStampSec, Mat &img) {
     }
     last_image_time = dStampSec;
     // frequency control
+    // 两帧间隔之间频率 <= FREQ
     if (round(1.0 * pub_count / (dStampSec - first_image_time)) <= FREQ) {
         PUB_THIS_FRAME = true;
         // reset the frequency control
@@ -72,6 +74,7 @@ void System::PubImageData(double dStampSec, Mat &img) {
             pub_count = 0;
         }
     } else {
+        // 频率出现问题
         PUB_THIS_FRAME = false;
     }
 
@@ -81,6 +84,7 @@ void System::PubImageData(double dStampSec, Mat &img) {
 
     for (unsigned int i = 0;; i++) {
         bool completed = false;
+        // 将特征点的id重新修改了比如0-59
         completed |= trackerData[0].updateID(i);
 
         if (!completed) break;
@@ -96,6 +100,7 @@ void System::PubImageData(double dStampSec, Mat &img) {
             auto &ids = trackerData[i].ids;
             auto &pts_velocity = trackerData[i].pts_velocity;
             for (unsigned int j = 0; j < ids.size(); j++) {
+                // 当这个特征点追踪的次数>1时
                 if (trackerData[i].track_cnt[j] > 1) {
                     int p_id = ids[j];
                     hash_ids[i].insert(p_id);

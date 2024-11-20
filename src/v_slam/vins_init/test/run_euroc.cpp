@@ -97,12 +97,11 @@ int main(int argc, char **argv) {
     std::thread thd_BackEnd(&System::ProcessBackEnd, pSystem);
 
     // sleep(5);
+    // c++中线程创建了,就运行起来了
     std::thread thd_PubImuData(PubImuData);
-
     std::thread thd_PubImageData(PubImageData);
-
     std::thread thd_Draw(&System::Draw, pSystem);
-
+    // 这里调用join会将主线程阻塞在这里
     thd_PubImuData.join();
     thd_PubImageData.join();
 
