@@ -334,6 +334,47 @@ void LioPreinteg::Optimize() {
         LOG(INFO) << "prior chi2: " << edge_prior->chi2() << ", err: " << edge_prior->error().transpose();
         LOG(INFO) << "ndt: " << edge_ndt->chi2() << "/" << edge_ndt->error().transpose();
     }
+
+    // 重置预积分
+    options_.preinteg_options_.init_bg_ = current_nav_state_.bg_;
+    options_.preinteg_options_.init_ba_ = current_nav_state_.ba_;
+    preinteg_ = std::make_shared<IMUPreintegration>(options_.preinteg_options_);
+
+    // 构建当前时刻的先验
+    // 构建hessian
+    // 15x2，顺序：v0_pose, v0_vel, v0_bg, v0_ba, v1_pose, v1_vel, v1_bg, v1_ba
+    //            0       6        9     12     15        21      24     27
+    Eigen::Matrix<double, 30, 30> H;
+    H.setZero();
+    // 获取预积分的hessian
+    H.block<24, 24>(0, 0) += edge_inertial->GetHessian();
+    // 与 ba,bg有关的hessin
+    Eigen::Matrix<double, 6, 6> Hgr = edge_gyro_rw->GetHessian();
+    H.block<3, 3>(9, 9) += Hgr.block<3, 3>(0, 0);
+    H.block<3, 3>(9, 24) += Hgr.block<3, 3>(0, 3);
+    H.block<3, 3>(24, 9) += Hgr.block<3, 3>(3, 0);
+    H.block<3, 3>(24, 24) += Hgr.block<3, 3>(3, 3);
+
+    Eigen::Matrix<double, 6, 6> Har = edge_acc_rw->GetHessian();
+    H.block<3, 3>(12, 12) += Har.block<3, 3>(0, 0);
+    H.block<3, 3>(12, 27) += Har.block<3, 3>(0, 3);
+    H.block<3, 3>(27, 12) += Har.block<3, 3>(3, 0);
+    H.block<3, 3>(27, 27) += Har.block<3, 3>(3, 3);
+    // 15x15的先验信息
+    H.block<15, 15>(0, 0) += edge_prior->GetHessian();
+    // 对1时刻的ndthessin
+    H.block<6, 6>(15, 15) += edge_ndt->GetHessian();
+
+    // 将v0时刻相关的边缘化
+    H = math::Marginalize(H, 0, 14);
+    prior_info_ = H.block<15, 15>(15, 15);
+    if (options_.verbose_) {
+        LOG(INFO) << "info trace: " << prior_info_.trace();
+        LOG(INFO) << "optimization done.";
+    }
+
+    NormalizeVelocity();
+    last_nav_state_ = current_nav_state_;
 }
 
 /// 点云回调函数
@@ -354,5 +395,27 @@ void LioPreinteg::Finish() {
         ui_->Quit();
     }
     LOG(INFO) << "finish done";
+}
+
+void LioPreinteg::NormalizeVelocity() {
+    /// 限制v的变化
+    /// 一般是-y 方向速度
+    Vec3d v_body = current_nav_state_.R_.inverse() * current_nav_state_.v_;
+    if (v_body[1] > 0) {
+        v_body[1] = 0;
+    }
+    v_body[2] = 0;
+
+    if (v_body[1] < -2.0) {
+        v_body[1] = -2.0;
+    }
+
+    if (v_body[0] > 0.1) {
+        v_body[0] = 0.1;
+    } else if (v_body[0] < -0.1) {
+        v_body[0] = -0.1;
+    }
+
+    current_nav_state_.v_ = current_nav_state_.R_ * v_body;
 }
 }  // namespace slam_learn::lio_preinteg

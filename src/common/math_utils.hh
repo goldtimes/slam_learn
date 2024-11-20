@@ -296,5 +296,68 @@ bool PoseInterp(double query_time, const std::map<double, T>& data, const std::f
     best_match = s < 0.5 ? match_iter->second : match_iter_n->second;
     return true;
 }
+inline Eigen::MatrixXd Marginalize(const Eigen::MatrixXd& H, const int& start, const int& end) {
+    // 将与v0时刻有关的边缘掉
+    // a  | ab | ac       a*  | 0 | ac*   交换位置  |a  | ab | ac|       |a  | ac | ab|
+    // ba | b  | bc  -->  0   | 0 | 0    ---->     |ba | b  | bc| -->   |ca | c  | cb|
+    // ca | cb | c        ca* | 0 | c*             |ca | cb | c |       |ba | bc | b |
 
+    const int a = start;                 // 0
+    const int b = end - start + 1;       // 15
+    const int c = H.cols() - (end + 1);  // 15
+
+    Eigen::MatrixXd Hn = Eigen::MatrixXd::Zero(H.rows(), H.cols());
+    if (a > 0) {
+    }
+    if (a > 0 && c > 0) {
+    }
+    if (c > 0) {
+        Hn.block(a, a, c, c) = H.block(a + b, a + b, c, c);
+        Hn.block(a, a + c, c, b) = H.block(a + b, a, c, b);
+        Hn.block(a + c, a, b, c) = H.block(a, a + b, b, c);
+    }
+    Hn.block(a + c, a + c, b, b) = H.block(a, a, b, b);
+    // Perform marginalization (Schur complement)
+    // Hmm 求逆
+    Eigen::JacobiSVD<Eigen::MatrixXd> svd(Hn.block(a + c, a + c, b, b), Eigen::ComputeThinU | Eigen::ComputeThinV);
+    Eigen::JacobiSVD<Eigen::MatrixXd>::SingularValuesType singularValues_inv = svd.singularValues();
+    for (int i = 0; i < b; ++i) {
+        if (singularValues_inv(i) > 1e-6)
+            singularValues_inv(i) = 1.0 / singularValues_inv(i);
+        else
+            singularValues_inv(i) = 0;
+    }
+    Eigen::MatrixXd invHb = svd.matrixV() * singularValues_inv.asDiagonal() * svd.matrixU().transpose();
+    // 根据舒尔补的公式
+    // a*  | ac* | 0
+    // ca* | c*  | 0
+    // 0   | 0   | 0
+    Hn.block(0, 0, a + c, a + c) =
+        Hn.block(0, 0, a + c, a + c) - Hn.block(0, a + c, a + c, b) * invHb * Hn.block(a + c, 0, b, a + c);
+    Hn.block(a + c, a + c, b, b) = Eigen::MatrixXd::Zero(b, b);
+    Hn.block(0, a + c, a + c, b) = Eigen::MatrixXd::Zero(a + c, b);
+    Hn.block(a + c, 0, b, a + c) = Eigen::MatrixXd::Zero(b, a + c);
+    // a*  | ac* | 0       a*  | 0 | ac*
+    // ca* | c*  | 0  -->  0   | 0 | 0
+    // 0   | 0   | 0       ca* | 0 | c*
+    Eigen::MatrixXd res = Eigen::MatrixXd::Zero(H.rows(), H.cols());
+    if (a > 0) {
+        res.block(0, 0, a, a) = Hn.block(0, 0, a, a);
+        res.block(0, a, a, b) = Hn.block(0, a + c, a, b);
+        res.block(a, 0, b, a) = Hn.block(a + c, 0, b, a);
+    }
+    if (a > 0 && c > 0) {
+        res.block(0, a + b, a, c) = Hn.block(0, a, a, c);
+        res.block(a + b, 0, c, a) = Hn.block(a, 0, c, a);
+    }
+    if (c > 0) {
+        res.block(a + b, a + b, c, c) = Hn.block(a, a, c, c);
+        res.block(a + b, a, c, b) = Hn.block(a, a + c, c, b);
+        res.block(a, a + b, b, c) = Hn.block(a + c, a, b, c);
+    }
+
+    res.block(a, a, b, b) = Hn.block(a + c, a + c, b, b);
+
+    return res;
+}
 }  // namespace slam_learn::math
