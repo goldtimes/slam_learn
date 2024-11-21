@@ -94,22 +94,32 @@ void Estimator::processIMU(double dt, const Vector3d &linear_acceleration, const
         acc_0 = linear_acceleration;
         gyr_0 = angular_velocity;
     }
-
+    // 第一个关键帧，先生成一个预积分对象
+    // 当processImage中处理了第一个关键帧之后，frame_count++;
+    // 从system来看，这里相对于在距离第一帧关键最近的时刻根据imu的值来创建了预积分的对象
+    // 前面多余的值都被覆盖了，然后这里等待第二帧到来
     if (!pre_integrations[frame_count]) {
         pre_integrations[frame_count] = new IntegrationBase{acc_0, gyr_0, Bas[frame_count], Bgs[frame_count]};
     }
+    //
     if (frame_count != 0) {
+        // 这里就是预积分计算预积分量和误差传播的协方差矩阵
         pre_integrations[frame_count]->push_back(dt, linear_acceleration, angular_velocity);
         // if(solver_flag != NON_LINEAR)
+        // 这里就是预积分计算预积分量和误差传播的协方差矩阵
         tmp_pre_integration->push_back(dt, linear_acceleration, angular_velocity);
-
+        // 记录dt
         dt_buf[frame_count].push_back(dt);
+        // 记录加速度
         linear_acceleration_buf[frame_count].push_back(linear_acceleration);
+        // 记录角速度
         angular_velocity_buf[frame_count].push_back(angular_velocity);
 
         int j = frame_count;
+        // 中值计算 Rs[j] j关键帧时刻的旋转初始为identity
         Vector3d un_acc_0 = Rs[j] * (acc_0 - Bas[j]) - g;
         Vector3d un_gyr = 0.5 * (gyr_0 + angular_velocity) - Bgs[j];
+        // key1->key2直接的预积分量？
         Rs[j] *= Utility::deltaQ(un_gyr * dt).toRotationMatrix();
         Vector3d un_acc_1 = Rs[j] * (linear_acceleration - Bas[j]) - g;
         Vector3d un_acc = 0.5 * (un_acc_0 + un_acc_1);
@@ -123,6 +133,7 @@ void Estimator::processIMU(double dt, const Vector3d &linear_acceleration, const
 void Estimator::processImage(const map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> &image, double header) {
     // ROS_DEBUG("new image coming ------------------------------------------");
     // cout << "Adding feature points: " << image.size()<<endl;
+    // 通过检测两帧之间的视差决定次新帧是否作为关键帧
     if (f_manager.addFeatureCheckParallax(frame_count, image, td))
         marginalization_flag = MARGIN_OLD;
     else
@@ -132,13 +143,19 @@ void Estimator::processImage(const map<int, vector<pair<int, Eigen::Matrix<doubl
     // ROS_DEBUG("%s", marginalization_flag ? "Non-keyframe" : "Keyframe");
     // ROS_DEBUG("Solving %d", frame_count);
     // cout << "number of feature: " << f_manager.getFeatureCount()<<endl;
+    // 在滑动窗口大小的数组中填入时间
     Headers[frame_count] = header;
 
     ImageFrame imageframe(image, header);
+    // 第一帧的时候这里直接赋值为nullptr为值
+    // 第二帧的时候这里就是key1->key2之间的预积分量了
     imageframe.pre_integration = tmp_pre_integration;
+    // map中以时间为key,imageframe
     all_image_frame.insert(make_pair(header, imageframe));
+    // 将初始值传入，创建预积分对象
+    // 重置tmp_pre_integration
     tmp_pre_integration = new IntegrationBase{acc_0, gyr_0, Bas[frame_count], Bgs[frame_count]};
-
+    // 外参不准，需要估计旋转
     if (ESTIMATE_EXTRINSIC == 2) {
         cout << "calibrating extrinsic param, rotation movement is needed" << endl;
         if (frame_count != 0) {
@@ -154,8 +171,9 @@ void Estimator::processImage(const map<int, vector<pair<int, Eigen::Matrix<doubl
             }
         }
     }
-
+    // 初始化阶段
     if (solver_flag == INITIAL) {
+        // 当达到滑动窗口大小之后 开始初始化
         if (frame_count == WINDOW_SIZE) {
             bool result = false;
             if (ESTIMATE_EXTRINSIC != 2 && (header - initial_timestamp) > 0.1) {
@@ -176,6 +194,7 @@ void Estimator::processImage(const map<int, vector<pair<int, Eigen::Matrix<doubl
             } else
                 slideWindow();
         } else
+            // 第一个关键帧生成了
             frame_count++;
     } else {
         TicToc t_solve;
@@ -205,29 +224,39 @@ void Estimator::processImage(const map<int, vector<pair<int, Eigen::Matrix<doubl
         last_P0 = Ps[0];
     }
 }
+
+// VINS采用了视觉和IMU的松耦合初始化方案，首先用从运动恢复结构（SFM）得到纯视觉系统的初始化，即滑动窗口中所有帧的位姿和所有路标点的3d位置，
+// 然后将其与IMU预积分结果进行对齐，恢复尺度因子、重力、陀螺仪偏置和每一帧的速度。
 bool Estimator::initialStructure() {
     TicToc t_sfm;
     // check imu observibility
     {
+        // 关键帧的迭代器
         map<double, ImageFrame>::iterator frame_it;
         Vector3d sum_g;
         for (frame_it = all_image_frame.begin(), frame_it++; frame_it != all_image_frame.end(); frame_it++) {
+            // 关键帧之间的预积分时间总和
             double dt = frame_it->second.pre_integration->sum_dt;
+            // 预积分量 dv / dt = g  at = v
             Vector3d tmp_g = frame_it->second.pre_integration->delta_v / dt;
             sum_g += tmp_g;
         }
         Vector3d aver_g;
+        // 平均值
         aver_g = sum_g * 1.0 / ((int)all_image_frame.size() - 1);
         double var = 0;
+        // 标准差的分子
         for (frame_it = all_image_frame.begin(), frame_it++; frame_it != all_image_frame.end(); frame_it++) {
             double dt = frame_it->second.pre_integration->sum_dt;
             Vector3d tmp_g = frame_it->second.pre_integration->delta_v / dt;
             var += (tmp_g - aver_g).transpose() * (tmp_g - aver_g);
             // cout << "frame g " << tmp_g.transpose() << endl;
         }
+        // 标准差
         var = sqrt(var / ((int)all_image_frame.size() - 1));
         // ROS_WARN("IMU variation %f!", var);
         if (var < 0.25) {
+            // 运动的激励不能太小
             // ROS_INFO("IMU excitation not enouth!");
             // return false;
         }
@@ -245,17 +274,21 @@ bool Estimator::initialStructure() {
         for (auto &it_per_frame : it_per_id.feature_per_frame) {
             imu_j++;
             Vector3d pts_j = it_per_frame.point;
+            // tmp_feature存储了所有的特征点在不同frame中的像素坐标
             tmp_feature.observation.push_back(make_pair(imu_j, Eigen::Vector2d{pts_j.x(), pts_j.y()}));
         }
+        // 放到sfm中
         sfm_f.push_back(tmp_feature);
     }
     Matrix3d relative_R;
     Vector3d relative_T;
     int l;
+    // 遍历每一帧和最后一帧计算共视，当从某一帧到最后一帧之间估计了E矩阵之后记录下改frame_num
     if (!relativePose(relative_R, relative_T, l)) {
         cout << "Not enough features or parallax; Move device around" << endl;
         return false;
     }
+    // 估计相机位姿 BA
     GlobalSFM sfm;
     if (!sfm.construct(frame_count + 1, Q, T, l, relative_R, relative_T, sfm_f, sfm_tracked_points)) {
         cout << "global SFM failed!" << endl;
@@ -272,6 +305,7 @@ bool Estimator::initialStructure() {
         cv::Mat r, rvec, t, D, tmp_r;
         if ((frame_it->first) == Headers[i]) {
             frame_it->second.is_key_frame = true;
+            // Rwc * Ric_inv = R_wi
             frame_it->second.R = Q[i].toRotationMatrix() * RIC[0].transpose();
             frame_it->second.T = T[i];
             i++;
@@ -341,6 +375,7 @@ bool Estimator::visualInitialAlign() {
     }
 
     // change state
+    // 全部置为关键帧
     for (int i = 0; i <= frame_count; i++) {
         Matrix3d Ri = all_image_frame[Headers[i]].R;
         Vector3d Pi = all_image_frame[Headers[i]].T;
@@ -348,7 +383,7 @@ bool Estimator::visualInitialAlign() {
         Rs[i] = Ri;
         all_image_frame[Headers[i]].is_key_frame = true;
     }
-
+    // 获取深度信息
     VectorXd dep = f_manager.getDepthVector();
     for (int i = 0; i < dep.size(); i++) dep[i] = -1;
     f_manager.clearDepth(dep);
@@ -364,6 +399,7 @@ bool Estimator::visualInitialAlign() {
     for (int i = 0; i <= WINDOW_SIZE; i++) {
         pre_integrations[i]->repropagate(Vector3d::Zero(), Bgs[i]);
     }
+    // 相机姿态是相对一帧的，然后将这里转到了imu系
     for (int i = frame_count; i >= 0; i--) Ps[i] = s * Ps[i] - Rs[i] * TIC[0] - (s * Ps[0] - Rs[0] * TIC[0]);
     int kv = -1;
     map<double, ImageFrame>::iterator frame_i;
@@ -373,6 +409,7 @@ bool Estimator::visualInitialAlign() {
             Vs[kv] = frame_i->second.R * x.segment<3>(kv * 3);
         }
     }
+    // 估计的深度 * 尺度
     for (auto &it_per_id : f_manager.feature) {
         it_per_id.used_num = it_per_id.feature_per_frame.size();
         if (!(it_per_id.used_num >= 2 && it_per_id.start_frame < WINDOW_SIZE - 2)) continue;
@@ -400,6 +437,7 @@ bool Estimator::relativePose(Matrix3d &relative_R, Vector3d &relative_T, int &l)
     // find previous frame which contians enough correspondance and parallex with newest frame
     for (int i = 0; i < WINDOW_SIZE; i++) {
         vector<pair<Vector3d, Vector3d>> corres;
+        // 0->window_size, 1->window_size, 2->window_size
         corres = f_manager.getCorresponding(i, WINDOW_SIZE);
         if (corres.size() > 20) {
             double sum_parallax = 0;
@@ -411,6 +449,8 @@ bool Estimator::relativePose(Matrix3d &relative_R, Vector3d &relative_T, int &l)
                 sum_parallax = sum_parallax + parallax;
             }
             average_parallax = 1.0 * sum_parallax / int(corres.size());
+            // 共视比较多的，且估计出来了旋转和平移
+            // 求本质矩阵获得r,t
             if (average_parallax * 460 > 30 && m_estimator.solveRelativeRT(corres, relative_R, relative_T)) {
                 l = i;
                 // ROS_DEBUG("average_parallax %f choose l %d and newest frame to triangulate the whole structure",

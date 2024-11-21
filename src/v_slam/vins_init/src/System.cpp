@@ -243,7 +243,7 @@ void System::PubImageData(double dStampSec, std::string filename) {
 /**
     <--------|------------|----------->
 imu_start    image_start          imu_end
- */  
+ */
 vector<pair<vector<ImuConstPtr>, ImgConstPtr>> System::getMeasurements() {
     vector<pair<vector<ImuConstPtr>, ImgConstPtr>> measurements;
 
@@ -328,6 +328,7 @@ void System::ProcessBackEnd() {
             auto img_msg = measurement.second;
             double dx = 0, dy = 0, dz = 0, rx = 0, ry = 0, rz = 0;
             for (auto &imu_msg : measurement.first) {
+                // 处理每一帧的imu数据
                 double t = imu_msg->header;
                 double img_t = imu_msg->header + estimator.td;
                 if (t <= img_t) {
@@ -372,9 +373,11 @@ void System::ProcessBackEnd() {
                 int v = img_msg->id_of_point[i] + 0.5;
                 int feature_id = v / NUM_OF_CAM;
                 int camera_id = v % NUM_OF_CAM;
+                // xyz为归一化且去畸变后的像素的点
                 double x = img_msg->points[i].x();
                 double y = img_msg->points[i].y();
                 double z = img_msg->points[i].z();
+                // 原始的像素点
                 double p_u = img_msg->u_of_point[i];
                 double p_v = img_msg->v_of_point[i];
                 double velocity_x = img_msg->velocity_x_of_point[i];
@@ -385,6 +388,7 @@ void System::ProcessBackEnd() {
                 image[feature_id].emplace_back(camera_id, xyz_uv_velocity);
             }
             TicToc t_processImage;
+            // header为当前图像的时间
             estimator.processImage(image, img_msg->header);
 
             if (estimator.solver_flag == Estimator::SolverFlag::NON_LINEAR) {

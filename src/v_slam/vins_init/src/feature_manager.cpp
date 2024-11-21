@@ -53,7 +53,7 @@ bool FeatureManager::addFeatureCheckParallax(int frame_count,
             last_track_num++;
         }
     }
-
+    // 前两帧都会关键帧 || last_track_num  < 20也为关键帧
     if (frame_count < 2 || last_track_num < 20) return true;
 
     for (auto &it_per_id : feature) {

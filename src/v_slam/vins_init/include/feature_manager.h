@@ -39,7 +39,10 @@ class FeaturePerFrame {
     VectorXd b;
     double dep_gradient;
 };
-
+/*
+    存放特征点的id以及该特征在哪些frame中
+    frame就是特征点在关键帧中的归一化且去畸变像素坐标，像素坐标，速度信息组成的map
+ */
 class FeaturePerId {
    public:
     const int feature_id;
@@ -87,6 +90,7 @@ class FeatureManager {
     void removeBack();
     void removeFront(int frame_count);
     void removeOutlier();
+    // 存放特征点以及特征id的关系
     list<FeaturePerId> feature;
     int last_track_num;
 
