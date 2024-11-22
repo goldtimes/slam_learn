@@ -417,6 +417,7 @@ bool Estimator::visualInitialAlign() {
     }
 
     Matrix3d R0 = Utility::g2R(g);
+    // 获取到第一帧相对r0的yaw角差，然后补偿回去
     double yaw = Utility::R2ypr(R0 * Rs[0]).x();
     R0 = Utility::ypr2R(Eigen::Vector3d{-yaw, 0, 0}) * R0;
     g = R0 * g;
